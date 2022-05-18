@@ -14,25 +14,35 @@
 #include "onnx_interp.h"
 
 /*--- CONSTANT ---*/
-const std::string _dtype[] = {
-    "UNDEFINED",
-    "FLOAT",        // maps to c type float
-    "UINT8",        // maps to c type uint8_t
-    "INT8",         // maps to c type int8_t
-    "UINT16",       // maps to c type uint16_t
-    "INT16",        // maps to c type int16_t
-    "INT32",        // maps to c type int32_t
-    "INT64",        // maps to c type int64_t
-    "STRING",       // maps to c++ type std::string
-    "BOOL",
-    "FLOAT16",
-    "DOUBLE",       // maps to c type double
-    "UINT32",       // maps to c type uint32_t
-    "UINT64",       // maps to c type uint64_t
-    "COMPLEX64",    // complex with float32 real and imaginary components
-    "COMPLEX128",   // complex with float64 real and imaginary components
-    "BFLOAT16"      // Non-IEEE floating-point format based on IEEE754 single-precision
-};
+
+/***  Module Header  ******************************************************}}}*/
+/**
+* initialize interpreter
+* @par DESCRIPTION
+*
+*
+* @retval
+**/
+/**************************************************************************{{{*/
+void init_interp(SysInfo& sys, std::string& onnx_model)
+{
+    // load tensor flow lite model
+//    CHECK(g_ort2->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "onnx_interp", &sys.mEnv));
+//
+//    CHECK(g_ort2->CreateSessionOptions(&sys.mSessionOptions));
+//    CHECK(g_ort2->SetIntraOpNumThreads(sys.mSessionOptions, sys.mNumThread));
+//    CHECK(g_ort2->SetSessionGraphOptimizationLevel(sys.mSessionOptions, ORT_ENABLE_BASIC));
+//
+//    std::wstring widestr = std::wstring(onnx_model.begin(), onnx_model.end());
+//    CHECK(g_ort2->CreateSession(sys.mEnv, widestr.c_str(), sys.mSessionOptions, &sys.mSession));
+
+//    if (sys.mInterpreter->AllocateTensors() != kTfLiteOk) {
+//        std::cerr << "error: AllocateTensors()\n";
+//        exit(1);
+//    }
+
+    sys.mInterp = new OnnxInterp(onnx_model);
+}
 
 /***  Module Header  ******************************************************}}}*/
 /**
@@ -187,35 +197,6 @@ OnnxInterp::~OnnxInterp()
 
 /***  Module Header  ******************************************************}}}*/
 /**
-* initialize interpreter
-* @par DESCRIPTION
-*
-*
-* @retval
-**/
-/**************************************************************************{{{*/
-void init_interp(SysInfo& sys, std::string& onnx_model)
-{
-    // load tensor flow lite model
-//    CHECK(g_ort2->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "onnx_interp", &sys.mEnv));
-//
-//    CHECK(g_ort2->CreateSessionOptions(&sys.mSessionOptions));
-//    CHECK(g_ort2->SetIntraOpNumThreads(sys.mSessionOptions, sys.mNumThread));
-//    CHECK(g_ort2->SetSessionGraphOptimizationLevel(sys.mSessionOptions, ORT_ENABLE_BASIC));
-//
-//    std::wstring widestr = std::wstring(onnx_model.begin(), onnx_model.end());
-//    CHECK(g_ort2->CreateSession(sys.mEnv, widestr.c_str(), sys.mSessionOptions, &sys.mSession));
-
-//    if (sys.mInterpreter->AllocateTensors() != kTfLiteOk) {
-//        std::cerr << "error: AllocateTensors()\n";
-//        exit(1);
-//    }
-
-    sys.mInterp = new OnnxInterp(onnx_model);
-}
-
-/***  Module Header  ******************************************************}}}*/
-/**
 * query dimension of input tensor
 * @par DESCRIPTION
 *
@@ -226,6 +207,26 @@ void init_interp(SysInfo& sys, std::string& onnx_model)
 void
 OnnxInterp::info(json& res)
 {
+	const std::string _dtype[] = {
+		"UNDEFINED",
+		"FLOAT",        // maps to c type float
+		"UINT8",        // maps to c type uint8_t
+		"INT8",         // maps to c type int8_t
+		"UINT16",       // maps to c type uint16_t
+		"INT16",        // maps to c type int16_t
+		"INT32",        // maps to c type int32_t
+		"INT64",        // maps to c type int64_t
+		"STRING",       // maps to c++ type std::string
+		"BOOL",
+		"FLOAT16",
+		"DOUBLE",       // maps to c type double
+		"UINT32",       // maps to c type uint32_t
+		"UINT64",       // maps to c type uint64_t
+		"COMPLEX64",    // complex with float32 real and imaginary components
+		"COMPLEX128",   // complex with float64 real and imaginary components
+		"BFLOAT16"      // Non-IEEE floating-point format based on IEEE754 single-precision
+	};
+
     for (int index = 0; index < mInputCount; index++) {
         json onnx_tensor;
 
@@ -345,7 +346,6 @@ OnnxInterp::invoke()
 std::string
 OnnxInterp::get_output_tensor(unsigned int index)
 {
-//    return std::string(mOutput[index].GetTensorData<char>(), mOutput[index].GetStringTensorDataLength());
     return std::string(mOutput[index].GetTensorData<char>(), get_tensor_size(mOutput[index]));
 }
 

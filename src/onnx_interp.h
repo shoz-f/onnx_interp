@@ -37,10 +37,7 @@ public:
 //LIFECYCLE:
 public:
   OnnxInterp(std::string onnx_model);
-//  OnnxInterp(const OnnxInterp& org);
   virtual ~OnnxInterp();
-
-//  void Init();
 
 //ACTION:
 public:
