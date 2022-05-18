@@ -25,8 +25,8 @@ defmodule OnnxInterp.MixProject do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:mix_cmake, path: "../mix_cmake"},
-      {:cimg, path: "../cimg_ex"},
+      {:mix_cmake, github: "shoz-f/mix_cmake"},
+      {:cimg, github: "shoz-f/cimg_ex"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
@@ -54,7 +54,10 @@ defmodule OnnxInterp.MixProject do
       build_parallel_level: 4,
       
       # Specify CPU architecture
-      platform: "x64"
+      platform: "x64",
+      
+      # Visual C++ configuration
+      build_config: "Debug"
     ]
   end
 
