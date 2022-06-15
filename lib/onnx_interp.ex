@@ -1,14 +1,14 @@
 defmodule OnnxInterp do
   @moduledoc """
-  Tensorflow lite intepreter for Elixir.
+  Onnx runtime intepreter for Elixir.
   Deep Learning inference framework for embedded devices.
 
   ## Basic Usage
-  You get the trained tflite model and save it in a directory that your application can read.
+  You get the trained onnx model and save it in a directory that your application can read.
   "your-app/priv" may be good choice.
   
   ```
-  $ cp your-trained-model.tflite ./priv
+  $ cp your-trained-model.onnx ./priv
   ```
   
   Next, you will create a module that interfaces with the deep learning model. 
@@ -22,7 +22,7 @@ defmodule OnnxInterp do
 
   ```elixr:your_model.ex
   defmodule YourApp.YourModel do
-    use OnnxInterp, model: "priv/your-trained-model.tflite"
+    use OnnxInterp, model: "priv/your-trained-model.onnx"
 
     def predict(data) do
       # preprocess
