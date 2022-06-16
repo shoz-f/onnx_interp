@@ -21,9 +21,13 @@ include(FetchContent)
 if (WIN32)
     string(APPEND CMAKE_CXX_FLAGS " /W4")
     set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.11.0/onnxruntime-win-x64-1.11.0.zip)
-else()
+    set(LIB_ONNXRUNTIME "*.dll")
+elseif(UNIX AND NOT APPLE)
     string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra")
     string(APPEND CMAKE_C_FLAGS " -Wall -Wextra")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " -Wl,-rpath='$ORIGIN'")
+    set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.11.0/onnxruntime-linux-x64-1.11.0.tgz)
+    set(LIB_ONNXRUNTIME "*.so*")
 endif()
 
 #onnxruntime providers
@@ -89,7 +93,7 @@ add_executable(onnx_interp
 	)
 target_link_libraries(onnx_interp
 	onnxruntime
-	onnxruntime_providers_shared
+	#onnxruntime_providers_shared
 	getopt
 	nlohmann_json
 	)
@@ -101,7 +105,7 @@ install(TARGETS onnx_interp
 	)
 install(DIRECTORY ${ONNXRUNTIME_ROOTDIR}/lib/
 	DESTINATION $ENV{MIX_APP_PATH}/priv
-	FILES_MATCHING PATTERN "*.dll"
+	FILES_MATCHING PATTERN ${LIB_ONNXRUNTIME}
 	)
 
 install(TARGETS onnx_interp
@@ -110,5 +114,5 @@ install(TARGETS onnx_interp
 	)
 install(DIRECTORY ${ONNXRUNTIME_ROOTDIR}/lib/
 	DESTINATION ${CMAKE_SOURCE_DIR}/priv
-	FILES_MATCHING PATTERN "*.dll"
+	FILES_MATCHING PATTERN ${LIB_ONNXRUNTIME}
 	)
