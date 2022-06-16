@@ -59,9 +59,7 @@ Ort::Value& value)
 {
 	size_t size;
 
-	auto tensor_info = value.GetTensorTypeAndShapeInfo();
-
-	ONNXTensorElementDataType type = tensor_info.GetElementType();
+	ONNXTensorElementDataType type = value.GetTensorTypeAndShapeInfo().GetElementType();
 
 	switch (type) {
 	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED:
@@ -99,9 +97,9 @@ Ort::Value& value)
 		return 0;
 	}
 
-	size_t shape_len = tensor_info.GetDimensionsCount();
+	size_t shape_len = value.GetTensorTypeAndShapeInfo().GetDimensionsCount();
 	int64_t* shape = new int64_t[shape_len];
-	tensor_info.GetDimensions(shape, shape_len);
+	value.GetTensorTypeAndShapeInfo().GetDimensions(shape, shape_len);
 	for (int j = 0; j < shape_len; j++) {
 		if (shape[j] == -1) { shape[j] = 1; }
 
@@ -125,17 +123,22 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
 	Ort::AllocatorWithDefaultOptions _ort_alloc;
     Ort::SessionOptions session_options;
 
-	auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+	//auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
 
+#if _MSC_VER >=1900
     std::wstring widestr = std::wstring(onnx_model.begin(), onnx_model.end());
     mSession = Ort::Session(mEnv, widestr.c_str(), session_options);
+#elif __GNUC__
+    mSession = Ort::Session(mEnv, onnx_model.c_str(), session_options);
+#endif
 
     mInputCount = mSession.GetInputCount();
     mInputNames = new char*[mInputCount];
     for (int i = 0; i < mInputCount; i++) {
         mInputNames[i] = mSession.GetInputName(i, _ort_alloc);
         
-        auto tensor_info = mSession.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo();
+        Ort::TypeInfo type_info = mSession.GetInputTypeInfo(i);
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
         
         ONNXTensorElementDataType type = tensor_info.GetElementType();
 
@@ -156,7 +159,8 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
     for (int i = 0; i < mOutputCount; i++) {
         mOutputNames[i] = mSession.GetOutputName(i, _ort_alloc);
 
-        auto tensor_info = mSession.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo();
+        Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(i);
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
         
         ONNXTensorElementDataType type = tensor_info.GetElementType();
 
@@ -233,7 +237,8 @@ OnnxInterp::info(json& res)
         onnx_tensor["index"] = index;
         onnx_tensor["name"]  = mInputNames[index];
 
-        auto tensor_info = mSession.GetInputTypeInfo(index).GetTensorTypeAndShapeInfo();
+        Ort::TypeInfo type_info = mSession.GetInputTypeInfo(index);
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
 
         onnx_tensor["type"] = _dtype[tensor_info.GetElementType()];
 
@@ -255,7 +260,8 @@ OnnxInterp::info(json& res)
         onnx_tensor["index"] = index;
         onnx_tensor["name"]  = mOutputNames[index];
 
-        auto tensor_info = mSession.GetOutputTypeInfo(index).GetTensorTypeAndShapeInfo();
+        Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(index);
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo()
 
         onnx_tensor["type"] = _dtype[tensor_info.GetElementType()];
 
