@@ -2,13 +2,13 @@ defmodule OnnxInterpTest do
   use ExUnit.Case
   doctest OnnxInterp
 
-  defmodule Foo do
-    use OnnxInterp, model: "priv/candy.onnx"
+  defmodule Mnist do
+    use OnnxInterp, model: "test/mnist.onnx"
   end
 
   test "greets the world" do
-    Foo.start_link([])
-    OnnxInterp.info(Foo)
+    Mnist.start_link([])
+    OnnxInterp.info(Mnist)
     |> IO.inspect
   end
 end
