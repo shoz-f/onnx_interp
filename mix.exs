@@ -26,7 +26,6 @@ defmodule OnnxInterp.MixProject do
     [
       {:poison, "~> 3.1"},
       {:mix_cmake, github: "shoz-f/mix_cmake"},
-      {:cimg, github: "shoz-f/cimg_ex"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
@@ -47,7 +46,7 @@ defmodule OnnxInterp.MixProject do
       # Specify generator name.
       # "cmake --help" shows you build-in generators list.
       #
-      #generator: "Visual Studio 16 2019",
+      generator: "Visual Studio 16 2019",
 
       # Specify jobs parallel level.
       #
