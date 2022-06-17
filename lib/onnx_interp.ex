@@ -1,21 +1,21 @@
 defmodule OnnxInterp do
   @moduledoc """
   Onnx runtime intepreter for Elixir.
-  Deep Learning inference framework for embedded devices.
+  Deep Learning inference framework.
 
   ## Basic Usage
   You get the trained onnx model and save it in a directory that your application can read.
   "your-app/priv" may be good choice.
-  
+
   ```
   $ cp your-trained-model.onnx ./priv
   ```
-  
-  Next, you will create a module that interfaces with the deep learning model. 
+
+  Next, you will create a module that interfaces with the deep learning model.
   The module will need pre-processing and post-processing in addition to inference
   processing, as in the example following. OnnxInterp provides inference processing
   only.
-  
+
   You put `use OnnxInterp` at the beginning of your module, specify the model path as an optional argument. In the inference
   section, you will put data input to the model (`OnnxInterp.set_input_tensor/3`), inference execution (`OnnxInterp.invoke/1`),
   and inference result retrieval (`OnnxInterp.get_output_tensor/2`).
@@ -30,7 +30,7 @@ defmodule OnnxInterp do
       input_bin = convert-float32-binaries(data)
 
       # inference
-      #  typical I/O data for Tensorflow lite models is a serialized 32-bit float tensor.
+      #  typical I/O data for Onnx models is a serialized 32-bit float tensor.
       output_bin =
         __MODULE__
         |> OnnxInterp.set_input_tensor(0, input_bin)
@@ -77,7 +77,7 @@ defmodule OnnxInterp do
 
         {:ok, %{port: port}}
       end
-      
+
       def session() do
         %OnnxInterp{module: __MODULE__}
       end
@@ -146,11 +146,11 @@ defmodule OnnxInterp do
     end
     mod
   end
-  
-  def set_input_tensor(%OnnxInterp{input: input}=session, index, bin, opts) do                                                                       
+
+  def set_input_tensor(%OnnxInterp{input: input}=session, index, bin, opts) do
     %OnnxInterp{session | input: [input_tensor(index, bin, opts) | input]}
   end
-  
+
   defp input_tensor(index, bin, opts) do
     dtype = case Keyword.get(opts, :dtype, "none") do
       "none" -> 0
@@ -158,9 +158,9 @@ defmodule OnnxInterp do
       "<f2"  -> 2
     end
     {lo, hi} = Keyword.get(opts, :range, {0.0, 1.0})
-    
+
     size = 16 + byte_size(bin)
-    
+
     <<size::little-integer-32, index::little-integer-32, dtype::little-integer-32, lo::little-float-32, hi::little-float-32, bin::binary>>
   end
 
@@ -195,7 +195,7 @@ defmodule OnnxInterp do
       any -> any
     end
   end
-  
+
   def get_output_tensor(%OnnxInterp{output: output}, index) do
     Enum.at(output, index)
   end
@@ -203,13 +203,13 @@ defmodule OnnxInterp do
   @doc """
   Execute the inference session. In session mode, data input/execution of
   inference/output of results to the DL model is done all at once.
-  
+
   ## Parameters
 
     * session - session.
-  
+
   ## Examples.
-  
+
     ```elixir
       output_bin =
         session()
@@ -224,11 +224,11 @@ defmodule OnnxInterp do
     data  = Enum.reduce(input, <<>>, fn x,acc -> acc <> x end)
     case GenServer.call(mod, <<cmd::little-integer-32, count::little-integer-32>> <> data, @timeout) do
       {:ok, <<count::little-integer-32, results::binary>>} ->
-      	  if count > 0 do
-      	  	  %OnnxInterp{session | output: for <<size::little-integer-32, tensor::binary-size(size) <- results>> do tensor end}
-      	  else
-      	  	  "error: %{count}"
-      	  end
+          if count > 0 do
+              %OnnxInterp{session | output: for <<size::little-integer-32, tensor::binary-size(size) <- results>> do tensor end}
+          else
+              "error: %{count}"
+          end
       any -> any
     end
   end

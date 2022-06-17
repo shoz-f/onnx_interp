@@ -2,10 +2,10 @@
 /**
 * tiny_ml.cpp
 *
-* Elixir/Erlang Port ext. of tensor flow lite
+* Elixir/Erlang Port ext. of Tiny ML
 * @author   Shozo Fukuda
 * @date     create Mon Apr 18 08:52:19 JST 2022
-* System    Visual C++/Windows 10<br>
+* System    Windows10, WSL2/Ubuntu 20.04.2<br>
 *
 **/
 /**************************************************************************{{{*/
@@ -15,8 +15,6 @@
 
 #include "tiny_ml.h"
 #include "postprocess.h"
-
-/*--- CONSTANT ---*/
 
 /***  Module Header  ******************************************************}}}*/
 /**
@@ -30,7 +28,7 @@
 std::string
 info(SysInfo& sys, const void*)
 {
-	json res;
+    json res;
 
     res["exe"  ]  = sys.mExe;
     res["model"]  = sys.mModelPath;
@@ -46,7 +44,7 @@ info(SysInfo& sys, const void*)
     lap_time["output"] = sys.mLap[2].count();
     res["times"] = lap_time;
 
-	return res.dump();
+    return res.dump();
 }
 
 /***  Module Header  ******************************************************}}}*/
@@ -61,7 +59,7 @@ info(SysInfo& sys, const void*)
 static int
 set_input_tensor(TinyMLInterp* interp, const void* args)
 {
-	int res;
+    int res;
 
     struct Prms {
         unsigned int size;
@@ -81,22 +79,22 @@ set_input_tensor(TinyMLInterp* interp, const void* args)
 
     switch (prms->dtype) {
     case 0:
-    	res = interp->set_input_tensor(prms->index, prms->data, data_size);
-    	break;
+        res = interp->set_input_tensor(prms->index, prms->data, data_size);
+        break;
 
     case 1:
-    	{
-		double a = (prms->max - prms->min)/255.0;
-		double b = prms->min;
-    	res = interp->set_input_tensor(prms->index, prms->data, data_size,
-    	                               [a,b](uint8_t x){ return static_cast<float>(a*x + b); });
-    	}
-    	break;
+        {
+        double a = (prms->max - prms->min)/255.0;
+        double b = prms->min;
+        res = interp->set_input_tensor(prms->index, prms->data, data_size,
+                                       [a,b](uint8_t x){ return static_cast<float>(a*x + b); });
+        }
+        break;
 
     default:
-    	return -3;
+        return -3;
     }
-    
+
     return (res < 0) ? res : prms_size;
 }
 
@@ -132,7 +130,7 @@ invoke(SysInfo& sys, const void*)
     sys.start_watch();
 
     res["status"] = sys.mInterp->invoke();
-    
+
     sys.LAP_EXEC();
 
     return res.dump();
@@ -160,7 +158,7 @@ get_output_tensor(SysInfo& sys, const void* args)
     }
 
     sys.start_watch();
-    
+
     std::string&& res = sys.mInterp->get_output_tensor(prms->index);
 
     sys.LAP_OUTPUT();
@@ -168,7 +166,6 @@ get_output_tensor(SysInfo& sys, const void* args)
     return res;
 }
 
-#if 0
 /***  Module Header  ******************************************************}}}*/
 /**
 * execute inference in session mode
@@ -189,36 +186,35 @@ run(SysInfo& sys, const void* args)
     const Prms* prms = reinterpret_cast<const Prms*>(args);
 
     sys.start_watch();
-    
+
     const unsigned char* ptr = prms->data;
     for (int i = 0; i < prms->count; i++) {
-    	int next = set_input_tensor(sys.mInterp, ptr);
-    	if (next < 0) {
-    		// error about input tensors: error_code {-1..-3}
-    		return std::string(reinterpret_cast<char*>(&next), sizeof(next));
-    	}
-        
+        int next = set_input_tensor(sys.mInterp, ptr);
+        if (next < 0) {
+            // error about input tensors: error_code {-1..-3}
+            return std::string(reinterpret_cast<char*>(&next), sizeof(next));
+        }
+
         ptr += next;
     }
-    
+
     sys.LAP_INPUT();
 
     // invoke
-    int status = sys.mInterp->Invoke();
-    if (status != kTfLiteOk) {
-		// error about invoke: error_code {-11..}
-		status = -(10 + status);
-		return std::string(reinterpret_cast<char*>(&status), sizeof(status));
+    if (!sys.mInterp->invoke()) {
+        // error about invoke: error_code {-11..}
+        int status = -11;
+        return std::string(reinterpret_cast<char*>(&status), sizeof(status));
     }
 
     sys.LAP_EXEC();
 
-   	// get output tensors  <<count::little-integer-32, size::little-integer-32, bin::binary-size(size), ..>>
+    // get output tensors  <<count::little-integer-32, size::little-integer-32, bin::binary-size(size), ..>>
     int count = sys.mInterp->OutputCount();
     std::string output(reinterpret_cast<char*>(&count), sizeof(count));
 
-   	for (int index = 0; index < count; index++) {
-   		std::string&& otensor = sys.mInterp->get_output_tensor(index);
+    for (int index = 0; index < count; index++) {
+        std::string&& otensor = sys.mInterp->get_output_tensor(index);
         int size = otensor.size();
         output += std::string(reinterpret_cast<char*>(&size), sizeof(size))
                +  otensor;
@@ -228,7 +224,6 @@ run(SysInfo& sys, const void* args)
 
     return output;
 }
-#endif
 
 /**************************************************************************}}}**
 * command dispatch table
@@ -240,8 +235,8 @@ TMLFunc* gCmdTbl[] = {
     set_input_tensor,
     invoke,
     get_output_tensor,
-    //run,
-    
+    run,
+
     POST_PROCESS
 };
 
@@ -251,7 +246,7 @@ const int gMaxCmd = sizeof(gCmdTbl)/sizeof(TMLFunc*);
 /**
 * tensor flow lite interpreter
 * @par DESCRIPTION
-*   
+*
 **/
 /**************************************************************************{{{*/
 void
@@ -302,8 +297,8 @@ interp(std::string& model, std::string& labels)
             break;
         }
     }
-    
+
     delete gSys.mInterp;
 }
 
-/*** tiny_ml.cc ********************************************************}}}*/
+/*** tiny_ml.cpp **********************************************************}}}*/

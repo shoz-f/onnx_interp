@@ -2,10 +2,10 @@
 /**
 * @file tiny_ml.h
 *
-* system setting - used throughout the system
+* Elixir/Erlang Port ext. of Tiny ML
 * @author   Shozo Fukuda
-* @date     create Sun Feb 13 15:17:40 JST 2022
-* System    MINGW64/Windows 10<br>
+* @date     create Mon Apr 18 08:52:19 JST 2022
+* System    Windows10, WSL2/Ubuntu 20.04.2<br>
 *
 *******************************************************************************/
 #ifndef _TINY_ML_H
@@ -42,11 +42,11 @@ public:
 
 //ACTION:
 public:
-	virtual void info(json& res) = 0;
-	virtual int set_input_tensor(unsigned int index, const uint8_t* data, int size) = 0;
-	virtual int set_input_tensor(unsigned int index, const uint8_t* data, int size, std::function<float(uint8_t)> conv) = 0;
-	virtual bool invoke() = 0;
-	virtual std::string get_output_tensor(unsigned int index) = 0;
+    virtual void info(json& res) = 0;
+    virtual int set_input_tensor(unsigned int index, const uint8_t* data, int size) = 0;
+    virtual int set_input_tensor(unsigned int index, const uint8_t* data, int size, std::function<float(uint8_t)> conv) = 0;
+    virtual bool invoke() = 0;
+    virtual std::string get_output_tensor(unsigned int index) = 0;
 
 //INQUIRY:
 public:
@@ -62,7 +62,7 @@ protected:
 /**************************************************************************}}}**
 * system information
 ***************************************************************************{{{*/
-#define NUM_LAP	10
+#define NUM_LAP 10
 
 struct SysInfo {
     std::string    mExe;       // path of this executable
@@ -83,28 +83,28 @@ struct SysInfo {
     std::string label(int id) {
         return (id < mLabel.size()) ? mLabel[id] : std::to_string(id);
     }
-    
+
     // stop watch
-	chrono::steady_clock::time_point mWatchStart;
-	chrono::milliseconds mLap[NUM_LAP];
+    chrono::steady_clock::time_point mWatchStart;
+    chrono::milliseconds mLap[NUM_LAP];
 
     void reset_lap() {
-    	for (int i = 0; i < NUM_LAP; i++) { mLap[i] = chrono::milliseconds(0); }
+        for (int i = 0; i < NUM_LAP; i++) { mLap[i] = chrono::milliseconds(0); }
     }
     void start_watch() {
-    	reset_lap();
-    	mWatchStart = chrono::steady_clock::now();
+        reset_lap();
+        mWatchStart = chrono::steady_clock::now();
     }
     void lap(int index) {
-    	chrono::steady_clock::time_point now = chrono::steady_clock::now();
-    	mLap[index] = chrono::duration_cast<chrono::milliseconds>(now - mWatchStart);
-    	mWatchStart = now;
+        chrono::steady_clock::time_point now = chrono::steady_clock::now();
+        mLap[index] = chrono::duration_cast<chrono::milliseconds>(now - mWatchStart);
+        mWatchStart = now;
     }
 };
 
-#define LAP_INPUT()		lap(0)
-#define LAP_EXEC()		lap(1)
-#define LAP_OUTPUT()	lap(2)
+#define LAP_INPUT()     lap(0)
+#define LAP_EXEC()      lap(1)
+#define LAP_OUTPUT()    lap(2)
 
 extern SysInfo gSys;
 

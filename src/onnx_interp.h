@@ -2,11 +2,11 @@
 /**
 * @file onnx_interp.h
 *
-* Tiny ML interpreter on ONNX Runtime
-* @author	Shozo Fukuda
-* @date		create Fri Apr 15 12:55:02 JST 2022
-* @date		update $Date:$
-* System	Windows <br>
+* Tiny ML interpreter on ONNX runtime
+* @author   Shozo Fukuda
+* @date     create Fri Apr 15 12:55:02 JST 2022
+* @date     update $Date:$
+* System    Windows10, WSL2/Ubuntu 20.04.2<br>
 *
 *******************************************************************************/
 #ifndef _ONNX_INTERP_H
@@ -41,11 +41,11 @@ public:
 
 //ACTION:
 public:
-	void info(json& res);
-	int set_input_tensor(unsigned int index, const uint8_t* data, int size);
-	int set_input_tensor(unsigned int index, const uint8_t* data, int size, std::function<float(uint8_t)> conv);
-	bool invoke();
-	std::string get_output_tensor(unsigned int index);
+    void info(json& res);
+    int set_input_tensor(unsigned int index, const uint8_t* data, int size);
+    int set_input_tensor(unsigned int index, const uint8_t* data, int size, std::function<float(uint8_t)> conv);
+    bool invoke();
+    std::string get_output_tensor(unsigned int index);
 
 //ACCESSOR:
 public:
@@ -57,7 +57,7 @@ public:
 private:
     Ort::Env mEnv{ORT_LOGGING_LEVEL_WARNING, "onnx_interp"};
     Ort::Session mSession{nullptr};
-    
+
     char** mInputNames{nullptr};
     std::vector<Ort::Value> mInput;
 

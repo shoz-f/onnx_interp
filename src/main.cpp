@@ -1,6 +1,14 @@
-// Copyright(c) Microsoft Corporation.All rights reserved.
-// Licensed under the MIT License.
-//
+/***  File Header  ************************************************************/
+/**
+* onnx_interp.cpp
+*
+* Tiny ML interpreter on ONNX runtime
+* @author   Shozo Fukuda
+* @date		create Fri Apr 15 12:55:02 JST 2022
+* System    Windows10, WSL2/Ubuntu 20.04.2<br>
+*
+**/
+/**************************************************************************{{{*/
 
 #ifdef _WIN32
 #include <fcntl.h>
@@ -102,6 +110,8 @@ main(int argc, char* argv[])
 
     // run interpreter
     interp(gSys.mModelPath, gSys.mLabelPath);
-    
+
     return 0;
 }
+
+/*** main.cpp *************************************************************}}}*/

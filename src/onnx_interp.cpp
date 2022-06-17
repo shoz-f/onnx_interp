@@ -2,18 +2,16 @@
 /**
 * onnx_interp.cpp
 *
-* Elixir/Erlang Port ext. of tensor flow lite
+* Tiny ML interpreter on ONNX runtime
 * @author   Shozo Fukuda
-* @date     create Sat Sep 26 06:26:30 JST 2020
-* System    Visual C++/Windows 10<br>
+* @date     create Fri Apr 15 12:55:02 JST 2022
+* System    Windows10, WSL2/Ubuntu 20.04.2<br>
 *
 **/
 /**************************************************************************{{{*/
 
 #include <stdio.h>
 #include "onnx_interp.h"
-
-/*--- CONSTANT ---*/
 
 /***  Module Header  ******************************************************}}}*/
 /**
@@ -46,7 +44,7 @@ void init_interp(SysInfo& sys, std::string& onnx_model)
 
 /***  Module Header  ******************************************************}}}*/
 /**
-* query dimension of input tensor
+* query dimension of onnx tensor
 * @par DESCRIPTION
 *
 *
@@ -57,58 +55,59 @@ size_t
 get_tensor_size(
 Ort::Value& value)
 {
-	size_t size;
+    size_t size;
 
-	ONNXTensorElementDataType type = value.GetTensorTypeAndShapeInfo().GetElementType();
+    auto tensor_info = value.GetTensorTypeAndShapeInfo();
+    ONNXTensorElementDataType type = tensor_info.GetElementType();
 
-	switch (type) {
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
-		return 0;
+    switch (type) {
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
+        return 0;
 
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
-		size = 8;
-		break;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+        size = 8;
+        break;
 
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
-		size = 4;
-		break;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+        size = 4;
+        break;
 
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
-		size = 2;
-		break;
-	
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
-	case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
-		size = 1;
-		break;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
+        size = 2;
+        break;
 
-	default:
-		return 0;
-	}
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
+        size = 1;
+        break;
 
-	size_t shape_len = value.GetTensorTypeAndShapeInfo().GetDimensionsCount();
-	int64_t* shape = new int64_t[shape_len];
-	value.GetTensorTypeAndShapeInfo().GetDimensions(shape, shape_len);
-	for (int j = 0; j < shape_len; j++) {
-		if (shape[j] == -1) { shape[j] = 1; }
+    default:
+        return 0;
+    }
 
-		size *= shape[j];
-	}
+    size_t shape_len = tensor_info.GetDimensionsCount();
+    int64_t* shape = new int64_t[shape_len];
+    tensor_info.GetDimensions(shape, shape_len);
+    for (int j = 0; j < shape_len; j++) {
+        if (shape[j] == -1) { shape[j] = 1; }
 
-	delete [] shape;
+        size *= shape[j];
+    }
 
-	return size;
+    delete [] shape;
+
+    return size;
 }
 
 /***  Method Header  ******************************************************}}}*/
@@ -120,10 +119,8 @@ Ort::Value& value)
 /**************************************************************************{{{*/
 OnnxInterp::OnnxInterp(std::string onnx_model)
 {
-	Ort::AllocatorWithDefaultOptions _ort_alloc;
+    Ort::AllocatorWithDefaultOptions _ort_alloc;
     Ort::SessionOptions session_options;
-
-	//auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
 
 #if _MSC_VER >=1900
     std::wstring widestr = std::wstring(onnx_model.begin(), onnx_model.end());
@@ -136,21 +133,21 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
     mInputNames = new char*[mInputCount];
     for (int i = 0; i < mInputCount; i++) {
         mInputNames[i] = mSession.GetInputName(i, _ort_alloc);
-        
+
         Ort::TypeInfo type_info = mSession.GetInputTypeInfo(i);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-        
+
         ONNXTensorElementDataType type = tensor_info.GetElementType();
 
         size_t shape_len = tensor_info.GetDimensionsCount();
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
         for (int j = 0; j < shape_len; j++) {
-        	if (shape[j] == -1) { shape[j] = 1; }
+            if (shape[j] == -1) { shape[j] = 1; }
         }
 
-		mInput.emplace_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
-        
+        mInput.emplace_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
+
         delete [] shape;
     }
 
@@ -161,18 +158,18 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
 
         Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(i);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-        
+
         ONNXTensorElementDataType type = tensor_info.GetElementType();
 
         size_t shape_len = tensor_info.GetDimensionsCount();
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
         for (int j = 0; j < shape_len; j++) {
-        	if (shape[j] == -1) { shape[j] = 1; }
+            if (shape[j] == -1) { shape[j] = 1; }
         }
-        
+
         mOutput.push_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
-        
+
         delete [] shape;
     }
 }
@@ -186,7 +183,7 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
 /**************************************************************************{{{*/
 OnnxInterp::~OnnxInterp()
 {
-	Ort::AllocatorWithDefaultOptions _ort_alloc;
+    Ort::AllocatorWithDefaultOptions _ort_alloc;
 
     for (int i = 0; i < mInputCount; i++) {
         _ort_alloc.Free(mInputNames[i]);
@@ -211,25 +208,25 @@ OnnxInterp::~OnnxInterp()
 void
 OnnxInterp::info(json& res)
 {
-	const std::string _dtype[] = {
-		"UNDEFINED",
-		"FLOAT",        // maps to c type float
-		"UINT8",        // maps to c type uint8_t
-		"INT8",         // maps to c type int8_t
-		"UINT16",       // maps to c type uint16_t
-		"INT16",        // maps to c type int16_t
-		"INT32",        // maps to c type int32_t
-		"INT64",        // maps to c type int64_t
-		"STRING",       // maps to c++ type std::string
-		"BOOL",
-		"FLOAT16",
-		"DOUBLE",       // maps to c type double
-		"UINT32",       // maps to c type uint32_t
-		"UINT64",       // maps to c type uint64_t
-		"COMPLEX64",    // complex with float32 real and imaginary components
-		"COMPLEX128",   // complex with float64 real and imaginary components
-		"BFLOAT16"      // Non-IEEE floating-point format based on IEEE754 single-precision
-	};
+    const std::string _dtype[] = {
+        "UNDEFINED",
+        "FLOAT",        // maps to c type float
+        "UINT8",        // maps to c type uint8_t
+        "INT8",         // maps to c type int8_t
+        "UINT16",       // maps to c type uint16_t
+        "INT16",        // maps to c type int16_t
+        "INT32",        // maps to c type int32_t
+        "INT64",        // maps to c type int64_t
+        "STRING",       // maps to c++ type std::string
+        "BOOL",
+        "FLOAT16",
+        "DOUBLE",       // maps to c type double
+        "UINT32",       // maps to c type uint32_t
+        "UINT64",       // maps to c type uint64_t
+        "COMPLEX64",    // complex with float32 real and imaginary components
+        "COMPLEX128",   // complex with float64 real and imaginary components
+        "BFLOAT16"      // Non-IEEE floating-point format based on IEEE754 single-precision
+    };
 
     for (int index = 0; index < mInputCount; index++) {
         json onnx_tensor;
@@ -261,7 +258,7 @@ OnnxInterp::info(json& res)
         onnx_tensor["name"]  = mOutputNames[index];
 
         Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(index);
-        auto tensor_info = type_info.GetTensorTypeAndShapeInfo()
+        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
 
         onnx_tensor["type"] = _dtype[tensor_info.GetElementType()];
 
@@ -311,9 +308,9 @@ OnnxInterp::set_input_tensor(unsigned int index, const uint8_t* data, int size)
 int
 OnnxInterp::set_input_tensor(unsigned int index, const uint8_t* data, int size, std::function<float(uint8_t)> conv)
 {
-    if (size != mInput[index].GetStringTensorDataLength()/sizeof(float)) {
-        return -2;
-    }
+//    if (size != mInput[index].GetStringTensorDataLength()/sizeof(float)) {
+//        return -2;
+//    }
 
     float* dst = mInput[index].GetTensorMutableData<float>();
     const uint8_t* src = data;
@@ -355,66 +352,4 @@ OnnxInterp::get_output_tensor(unsigned int index)
     return std::string(mOutput[index].GetTensorData<char>(), get_tensor_size(mOutput[index]));
 }
 
-#if 0
-/***  Module Header  ******************************************************}}}*/
-/**
-* execute inference in session mode
-* @par DESCRIPTION
-*
-*
-* @retval
-**/
-/**************************************************************************{{{*/
-std::string
-run(SysInfo& sys, const void* args)
-{
-    // set input tensors
-    struct Prms {
-        unsigned int  count;
-        unsigned char data[0];
-    } __attribute__((packed));
-    const Prms* prms = reinterpret_cast<const Prms*>(args);
-
-    sys.start_watch();
-
-    const unsigned char* ptr = prms->data;
-    for (int i = 0; i < prms->count; i++) {
-        int next = set_itensor(sys, ptr);
-        if (next < 0) {
-            // error about input tensors: error_code {-1..-3}
-            return std::string(reinterpret_cast<char*>(&next), sizeof(next));
-        }
-
-        ptr += next;
-    }
-
-    sys.LAP_INPUT();
-
-    // invoke
-    mSession.Run(, mInputNames, , mInputCount, mOutputNames, , mOutputCount);
-    int status = sys.mInterpreter->Invoke();
-    if (status != kTfLiteOk) {
-        // error about invoke: error_code {-11..}
-        status = -(10 + status);
-        return std::string(reinterpret_cast<char*>(&status), sizeof(status));
-    }
-
-    sys.LAP_EXEC();
-
-    // get output tensors  <<count::little-integer-32, size::little-integer-32, bin::binary-size(size), ..>>
-    int count = sys.mInterpreter->outputs().size();
-    std::string output(reinterpret_cast<char*>(&count), sizeof(count));
-
-    for (int index = 0; index < count; index++) {
-        TfLiteTensor* otensor = sys.mInterpreter->output_tensor(index);
-        int size = otensor->bytes;
-        output += std::string(reinterpret_cast<char*>(&size), sizeof(size))
-               +  std::string(otensor->data.raw, otensor->bytes);
-    }
-
-    sys.LAP_OUTPUT();
-
-    return output;
-}
-#endif
-/*** onnx_interp.cc ********************************************************}}}*/
+/*** onnx_interp.cpp ******************************************************}}}*/

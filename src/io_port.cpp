@@ -2,10 +2,10 @@
 /**
 * io_port.cc
 *
-* Elixir/Erlang Port ext. of tensor flow lite
-* @author	   Shozo Fukuda
-* @date	create Sat Sep 26 06:26:30 JST 2020
-* System	   MINGW64/Windows 10<br>
+* I/O driver for Elixir/Erlang Port
+* @author      Shozo Fukuda
+* @date create Fri Jun 17 04:59:08 JST 2022
+* System       Windows10, WSL2/Ubuntu20.04.2, Linux Mint<br>
 *
 **/
 /**************************************************************************{{{*/
@@ -16,7 +16,7 @@
 
 /***  Type ****************************************************************}}}*/
 /**
-* convert "unsigned short" <-> "char[2]"
+* convert "unsigned int(32bit)" <-> "char[2]"
 **/
 /**************************************************************************{{{*/
 union Magic {
