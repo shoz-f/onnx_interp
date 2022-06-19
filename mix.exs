@@ -36,28 +36,31 @@ defmodule OnnxInterp.MixProject do
       # Specify cmake build directory or pseudo-path {:local, :global}.
       #   :local(default) - "./_build/.cmake_build"
       #   :global - "~/.#{Cmake.app_name()}"
-      #
       #build_dir: :local,
 
       # Specify cmake source directory.(default: File.cwd!)
-      #
       #source_dir: File.cwd!,
 
+      # Specify jobs parallel level.
+      build_parallel_level: 4,
+    ]
+    ++ case :os.type do
+      {:win32, :nt} -> cmake_win32()
+      _ -> []
+    end
+  end
+  
+  defp cmake_win32 do
+    [
       # Specify generator name.
       # "cmake --help" shows you build-in generators list.
-      #
-      #generator: "Visual Studio 16 2019",
+      generator: "Visual Studio 16 2019",
 
-      # Specify jobs parallel level.
-      #
-      build_parallel_level: 4,
-      
       # Specify CPU architecture
       platform: "x64",
-      
+
       # Visual C++ configuration
       build_config: "Debug"
     ]
   end
-
 end
