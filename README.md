@@ -7,6 +7,7 @@ I have confirmed it works in the following OS environment.
 
 - Windows 10 with Visual C++ 2019
 - WSL2/Ubuntu 20.04
+- Linux Mint 20 "Ulyana"
 
 ## Requirements
 cmake 3.13 or later is required.
