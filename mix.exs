@@ -33,7 +33,7 @@ defmodule OnnxInterp.MixProject do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:mix_cmake, github: "shoz-f/mix_cmake"},
+      {:mix_cmake, "~> 0.1.3"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
