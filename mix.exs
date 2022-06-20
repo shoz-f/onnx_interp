@@ -4,13 +4,21 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.0",
+      version: "0.1.2",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       compilers: [:cmake] ++ Mix.compilers(),
+      description: description(),
+      package: package(),
       deps: deps(),
 
       cmake: cmake(),
+
+      # Docs
+      # name: "tfl_interp",
+      source_url: "https://github.com/shoz-f/onnx_interp.git",
+
+      docs: docs()
     ]
   end
 
@@ -61,6 +69,33 @@ defmodule OnnxInterp.MixProject do
 
       # Visual C++ configuration
       build_config: "Debug"
+    ]
+  end
+
+  defp description() do
+    "Onnx runtime intepreter for Elixir."
+  end
+
+  defp package() do
+    [
+       name: "onnx_interp",
+      licenses: ["Apache-2.0"],
+      links: %{"GitHub" => "https://github.com/shoz-f/onnx_interp.git"},
+      files: ~w(lib mix.exs README* CHANGELOG* LICENSE* CMakeLists.txt src)
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: [
+        "README.md",
+#        "LICENSE",
+        "CHANGELOG.md"
+      ],
+#      source_ref: "v#{@version}",
+#      source_url: @source_url,
+#      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
     ]
   end
 end

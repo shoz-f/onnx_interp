@@ -21,7 +21,7 @@ You can install it by adding `onnx_interp` to the `mix.exs` dependency list as f
 ```elixir
 def deps do
   [
-    {:onnx_interp, github: "shoz-f/onnx_interp"}
+    {:onnx_interp, "~> 0.1.2"}
   ]
 end
 ```
