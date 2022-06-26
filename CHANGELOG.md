@@ -1,5 +1,10 @@
 # Changelog
 
+## Release 0.1.3( 2022)
+
+  * Bug Fixes and Other Changes
+    * include livebook demo: Semantic Segmentation for Self Driving Cars by UNet
+
 ## Release 0.1.2(May 20 2022)
 
   * Bug Fixes and Other Changes
