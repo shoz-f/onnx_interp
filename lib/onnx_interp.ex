@@ -250,7 +250,7 @@ defmodule OnnxInterp do
 
   def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, iou_threshold \\ 0.5, score_threshold \\ 0.25, sigma \\ 0.0) do
     cmd = 5
-    case GenServer.call(mod, <<cmd::little-integer-32, @padding::8*3, num_boxes::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
+    case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
       {:ok, nil} -> :notfind
       {:ok, result} -> Poison.decode(result)
       any -> any
