@@ -4,7 +4,7 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.2",
+      version: "0.1.3",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       compilers: [:cmake] ++ Mix.compilers(),
