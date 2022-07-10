@@ -25,13 +25,12 @@ defmodule DemoYolo7 do
     OnnxInterp.non_max_suppression_multi_class(__MODULE__,
       Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores)
     )
+    
+    #{outputs, boxes, scores}
   end
 
   defp extract_boxes(tensor, scale) do
-    p1 = Nx.slice_along_axis(tensor, 0, 2, axis: 1)
-    p2 = Nx.add(p1, Nx.slice_along_axis(tensor, 2, 2, axis: 1))
-
-    [p1, p2] |> Nx.concatenate(axis: 1) |> Nx.multiply(scale)
+    Nx.slice_along_axis(tensor, 0, 4, axis: 1) |> Nx.multiply(scale)
   end
 
   defp extract_scores(tensor) do
