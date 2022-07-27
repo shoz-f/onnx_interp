@@ -3,7 +3,7 @@
 ## Release 0.1.4(Jul 27 2022)
 
   * Bug Fixes and Other Changes
-    * added two more ways to specify box in NMS. 
+    * added two more ways to specify box in NMS.
     * include NanoDet plus object detection demo.
 
 ## Release 0.1.3(Jul 09 2022)

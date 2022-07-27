@@ -254,13 +254,12 @@ defmodule OnnxInterp do
   """
 
   def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, opts \\ []) do
-  
     box_repr = case Keyword.get(opts, :boxrepr, :center) do
       :center  -> 0
       :topleft -> 1
       :corner  -> 2
     end
-    
+
     iou_threshold   = Keyword.get(opts, :iou_threshold, 0.5)
     score_threshold = Keyword.get(opts, :score_threshold, 0.25)
     sigma           = Keyword.get(opts, :sigma, 0.0)
