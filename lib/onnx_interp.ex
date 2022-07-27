@@ -243,14 +243,30 @@ defmodule OnnxInterp do
     * num_class       - number of category class
     * boxes           - binaries, serialized boxes tensor[`num_boxes`][4]; dtype: float32
     * scores          - binaries, serialized score tensor[`num_boxes`][`num_class`]; dtype: float32
-    * iou_threshold   - IOU threshold
-    * score_threshold - score cutoff threshold
-    * sigma           - soft IOU parameter
+    * opts
+      * iou_threshold:   - IOU threshold
+      * score_threshold: - score cutoff threshold
+      * sigma:           - soft IOU parameter
+      * boxrepr:         - type of box representation
+         * 0 - center pos and width/height
+         * 1 - top-left pos and width/height
+         * 2 - top-left and bottom-right corner pos
   """
 
-  def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, iou_threshold \\ 0.5, score_threshold \\ 0.25, sigma \\ 0.0) do
+  def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, opts \\ []) do
+  
+    box_repr = case Keyword.get(opts, :boxrepr, :center) do
+      :center  -> 0
+      :topleft -> 1
+      :corner  -> 2
+    end
+    
+    iou_threshold   = Keyword.get(opts, :iou_threshold, 0.5)
+    score_threshold = Keyword.get(opts, :score_threshold, 0.25)
+    sigma           = Keyword.get(opts, :sigma, 0.0)
+
     cmd = 5
-    case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
+    case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, box_repr::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
       {:ok, nil} -> :notfind
       {:ok, result} -> Poison.decode(result)
       any -> any
