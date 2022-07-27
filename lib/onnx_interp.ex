@@ -248,9 +248,15 @@ defmodule OnnxInterp do
     * sigma           - soft IOU parameter
   """
 
-  def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, iou_threshold \\ 0.5, score_threshold \\ 0.25, sigma \\ 0.0) do
+  def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, iou_threshold \\ 0.5, score_threshold \\ 0.25, sigma \\ 0.0, opts \\ []) do
+    box_repr = case Keyword.get(opts, :boxrepr, :center) do
+      :center  -> 0
+      :topleft -> 1
+      :corner  -> 2
+    end
+
     cmd = 5
-    case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
+    case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, box_repr::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
       {:ok, nil} -> :notfind
       {:ok, result} -> Poison.decode(result)
       any -> any

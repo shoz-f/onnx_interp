@@ -25,12 +25,33 @@
 class Box {
 //LIFECYCLE:
 public:
-    Box(const float box[4], const float score) {
-        mBBox[0] = box[0] - box[2]/2.0;
-        mBBox[1] = box[1] - box[3]/2.0;
-        mBBox[2] = box[0] + box[2]/2.0;
-        mBBox[3] = box[1] + box[3]/2.0;
-        mArea = box[2]*box[3];
+    Box(const float box[4], float score, unsigned int box_repr=0) {
+        switch (box_repr) {
+        case 2:
+            mBBox[0] = box[0];
+            mBBox[1] = box[1];
+            mBBox[2] = box[2];
+            mBBox[3] = box[3];
+            mArea = (box[2]-box[0]+1)*(box[3]-box[1]+1);
+            break;
+
+        case 1:
+            mBBox[0] = box[0];
+            mBBox[1] = box[1];
+            mBBox[2] = box[0] + box[2];
+            mBBox[3] = box[1] + box[3];
+            mArea = box[2]*box[3];
+            break;
+
+        case 0:
+        default:
+            mBBox[0] = box[0] - box[2]/2.0;
+            mBBox[1] = box[1] - box[3]/2.0;
+            mBBox[2] = box[0] + box[2]/2.0;
+            mBBox[3] = box[1] + box[3]/2.0;
+            mArea = box[2]*box[3];
+            break;
+        }
         
         mScore = score;
     }
@@ -104,8 +125,9 @@ bool operator< (const Box& a, const Box& b) {
 std::string
 non_max_suppression_multi_class(
 unsigned int num_boxes,
-unsigned int num_class,
+unsigned int box_repr,
 const float* boxes,
+unsigned int num_class,
 const float* scores,
 float         iou_threshold,
 float         score_threshold,
@@ -121,7 +143,7 @@ float         sigma)
         const float* _scores = scores;
         for (int i = 0; i < num_boxes; i++, _boxes += 4, _scores += num_class) {
             if (_scores[class_id] > score_threshold) {
-                candidates.emplace(_boxes, _scores[class_id]);
+                candidates.emplace(_boxes, _scores[class_id], box_repr);
             }
         }
         if (candidates.empty()) continue;
@@ -169,6 +191,7 @@ non_max_suppression_multi_class(SysInfo&, const void* args)
 {
     struct Prms {
         unsigned int num_boxes;
+        unsigned int box_repr;
         unsigned int num_class;
         float         iou_threshold;
         float         score_threshold;
@@ -179,8 +202,9 @@ non_max_suppression_multi_class(SysInfo&, const void* args)
 
     return non_max_suppression_multi_class(
         prms->num_boxes,
-        prms->num_class,
+        prms->box_repr,
         &prms->table[0],
+        prms->num_class,
         &prms->table[4*prms->num_boxes],
         prms->iou_threshold,
         prms->score_threshold,

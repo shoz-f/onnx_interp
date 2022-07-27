@@ -1,5 +1,4 @@
 defmodule DemoNanoDet do
-  
   def apply_nanodet(img_file) do
     img = CImg.load(img_file)
     
@@ -23,7 +22,6 @@ end
 
 
 defmodule NanoDet do
-  # use OnnxInterp, model: Helper.model(), label: Helper.label()
   use OnnxInterp, model: "./nanodet.onnx", label: "./coco.label"
 
   @nanodet_shape {416, 416}
@@ -39,8 +37,7 @@ defmodule NanoDet do
     #|> Npy.save("ex_check/input0.npy")
 
     # prediction
-    outputs =
-      __MODULE__
+    outputs = __MODULE__
       |> OnnxInterp.set_input_tensor(0, bin)
       |> OnnxInterp.invoke()
       |> OnnxInterp.get_output_tensor(0)
@@ -64,7 +61,8 @@ defmodule NanoDet do
     boxes = decode_boxes(boxes, {width, height})
 
     OnnxInterp.non_max_suppression_multi_class(__MODULE__,
-      Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores)
+      Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores), 0.5, 0.25, 0.0,
+      boxrepr: :corner
     )
   end
 
@@ -144,7 +142,7 @@ defmodule NanoDet do
         |> Nx.exp()
         |> (&{&1, Nx.sum(&1)}).()
 
-      Nx.dot(weight, arm) |> Nx.divide(sum) |> Nx.to_number()  # same as formula of gravity center.
+      Nx.dot(weight, arm) |> Nx.divide(sum) |> Nx.to_number()  # mean of probability list
     end
 
     {scale_w, scale_h} = scale(world)
@@ -156,7 +154,6 @@ defmodule NanoDet do
       scale_h*(grid_y + wing.(tensor[24..31]))
     ]
     |> keep_within(world)
-    |> corner2center()
     |> Nx.stack()
   end
 
@@ -165,15 +162,6 @@ defmodule NanoDet do
     [max(left, 0), max(top, 0), min(right, width), min(bottom, height)]
   end
   
-  def corner2center([left,top,right,bottom]) do
-    [
-      (left + right ) / 2.0,
-      (top  + bottom) / 2.0,
-      (right  - left) + 1,
-      (bottom - top ) + 1
-    ]
-  end
-
   defp scale({}), do: {1.0, 1.0}
   defp scale({width, height}), do: {width/elem(@nanodet_shape, 0), height/elem(@nanodet_shape, 1)}
 end
