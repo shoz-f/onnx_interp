@@ -25,7 +25,6 @@ defmodule DemoNanoDet.MixProject do
       {:cimg, github: "shoz-f/cimg_ex"},
       {:onnx_interp, path: "..", env: :test},
       {:nx, "~> 0.2.1"},
-      {:npy, path: "../../npy_ex"}
     ]
   end
 end

@@ -4,7 +4,7 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.3",
+      version: "0.1.4",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       compilers: [:cmake] ++ Mix.compilers(),
@@ -15,7 +15,7 @@ defmodule OnnxInterp.MixProject do
       cmake: cmake(),
 
       # Docs
-      # name: "tfl_interp",
+      # name: "onnx_interp",
       source_url: "https://github.com/shoz-f/onnx_interp.git",
 
       docs: docs()

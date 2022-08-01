@@ -15,7 +15,6 @@ cmake 3.13 or later is required.
 Visual C++ 2019 for Windows.
 
 ## Installation
-OnnxInterp is still a trial version, so please install it from my GitHub.
 You can install it by adding `onnx_interp` to the `mix.exs` dependency list as follows:
 
 ```elixir
@@ -90,4 +89,4 @@ $ mix run -e "CandyDemo.demo"
 Let's enjoy ;-)
 
 ## License
-TflInterp is licensed under the Apache License Version 2.0.
+OnnxInterp is licensed under the Apache License Version 2.0.

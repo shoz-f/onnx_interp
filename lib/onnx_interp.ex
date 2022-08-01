@@ -101,7 +101,7 @@ defmodule OnnxInterp do
   defstruct module: nil, input: [], output: []
 
   @doc """
-  Get the propaty of the tflite model.
+  Get the propaty of the onnx model.
 
   ## Parameters
 
@@ -116,7 +116,7 @@ defmodule OnnxInterp do
   end
 
   @doc """
-  Stop the tflite interpreter.
+  Stop the onnx-runtime interpreter.
 
   ## Parameters
 
