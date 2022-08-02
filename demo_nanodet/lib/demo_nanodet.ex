@@ -20,7 +20,7 @@ end
 
 
 defmodule NanoDet do
-  use OnnxInterp, model: "./nanodet.onnx", label: "./coco.label"
+  use OnnxInterp, model: "./NanoDet-Plus-m-416.onnx", label: "./coco.label"
 
   @nanodet_shape {416, 416}
 
@@ -47,8 +47,12 @@ defmodule NanoDet do
 
     # postprocess
     {scores, boxes} =
-      Nx.concatenate([outputs, mesh_grid(@nanodet_shape, [8,16,32,64])], axis: 1)
-      |> sieve(0.25)
+      Nx.concatenate([outputs, PostDNN.mesh_grid(@nanodet_shape, [8,16,32,64])], axis: 1)
+      |> PostDNN.sieve(fn tensor ->
+          Nx.slice_along_axis(tensor, 0, 80, axis: 1)
+          |> Nx.reduce_max(axes: [1])
+          |> Nx.greater_equal(0.25)
+      end)
       |> (&{Nx.slice_along_axis(&1, 0, 80, axis: 1), Nx.slice_along_axis(&1, 80, 35, axis: 1)}).()
 
     #*+DEBUG:shoz:22/07/24:
@@ -61,57 +65,6 @@ defmodule NanoDet do
     OnnxInterp.non_max_suppression_multi_class(__MODULE__,
       Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores), boxrepr: :corner
     )
-  end
-
-  @doc """
-  Create a list of coordinates for mesh grid points.
-  """
-  def mesh_grid(shape, pitches, opts \\ [])
-
-  def mesh_grid(shape, pitches, opts) when is_list(pitches) do
-    Enum.map(pitches, &mesh_grid(shape, &1, opts))
-    |> Nx.concatenate()
-  end
-
-  def mesh_grid({w, h}, pitch, opts) when w >= 1 and h >= 1 do
-    m = trunc(Float.ceil(h/pitch))
-    n = trunc(Float.ceil(w/pitch))
-
-    # grid coodinates list
-    grid =
-      (for y <- 0..(m-1), x <- 0..(n-1), do: [x, y])
-      |> Nx.tensor(type: {:f, 32})
-      |> (&if :center in opts, do: Nx.add(&1, 0.5), else: &1).()
-      |> Nx.multiply(pitch)
-
-    # pitch list
-    pitch =
-      Nx.broadcast(pitch, {m*n, 1})
-      |> Nx.as_type({:f, 32})
-
-    Nx.concatenate([grid, pitch], axis: 1)
-  end
-
-  @doc """
-  Take records which has score greater or equal than `min_score`.
-  """
-  def sieve(tensor, min_score) do
-    # 各レコードのscores(先頭80要素)が min_score以上かどうかの判定リストを作る
-    judge =
-      Nx.slice_along_axis(tensor, 0, 80, axis: 1)
-      |> Nx.reduce_max(axes: [1])
-      |> Nx.greater_equal(min_score)
-
-    # 条件を満たすレコードの数を求める
-    count = Nx.sum(judge) |> Nx.to_number()
-
-    # 条件を満たすレコードのindexリストを作る
-    index =
-      Nx.argsort(judge, direction: :desc)
-      |> Nx.slice_along_axis(0, count)
-
-    # 条件を満たすレコードを集めてTensorを作る
-    Nx.take(tensor, index)
   end
 
   @doc """
@@ -161,4 +114,54 @@ defmodule NanoDet do
   
   defp scale({}), do: {1.0, 1.0}
   defp scale({width, height}), do: {width/elem(@nanodet_shape, 0), height/elem(@nanodet_shape, 1)}
+end
+
+defmodule PostDNN do
+  @doc """
+  Create a list of coordinates for mesh grid points.
+  """
+  def mesh_grid(shape, pitches, opts \\ [])
+
+  def mesh_grid(shape, pitches, opts) when is_list(pitches) do
+    Enum.map(pitches, &mesh_grid(shape, &1, opts))
+    |> Nx.concatenate()
+  end
+
+  def mesh_grid({w, h}, pitch, opts) when w >= 1 and h >= 1 do
+    m = trunc(Float.ceil(h/pitch))
+    n = trunc(Float.ceil(w/pitch))
+
+    # grid coodinates list
+    grid =
+      (for y <- 0..(m-1), x <- 0..(n-1), do: [x, y])
+      |> Nx.tensor(type: {:f, 32})
+      |> (&if :center in opts, do: Nx.add(&1, 0.5), else: &1).()
+      |> Nx.multiply(pitch)
+
+    # pitch list
+    pitch =
+      Nx.broadcast(pitch, {m*n, 1})
+      |> Nx.as_type({:f, 32})
+
+    Nx.concatenate([grid, pitch], axis: 1)
+  end
+
+  @doc """
+  Take records which has score greater or equal than `min_score`.
+  """
+  def sieve(tensor, pred?) do
+    # 各レコードのscores(先頭80要素)が min_score以上かどうかの判定リストを作る
+    judge = pred?.(tensor)
+
+    # 条件を満たすレコードの数を求める
+    count = Nx.sum(judge) |> Nx.to_number()
+
+    # 条件を満たすレコードのindexリストを作る
+    index =
+      Nx.argsort(judge, direction: :desc)
+      |> Nx.slice_along_axis(0, count)
+
+    # 条件を満たすレコードを集めてTensorを作る
+    Nx.take(tensor, index)
+  end
 end

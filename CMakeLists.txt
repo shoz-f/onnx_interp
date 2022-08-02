@@ -62,19 +62,25 @@ link_directories(
 	)
 
 # add Nlohmann JSON
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/3rd_party/nlohmann_json)
+set(URL_NLOHMANN_JSON https://github.com/nlohmann/json/releases/download/v3.7.3/include.zip)
+set(NLOHMANN_JSON_ROOTDIR ${CMAKE_SOURCE_DIR}/3rd_party/nlohmann_json)
+
+if(NOT EXISTS ${NLOHMANN_JSON_ROOTDIR})
 message("** Download nlohmann_json.")
 FetchContent_Declare(nlohmann_json
-	GIT_REPOSITORY https://github.com/nlohmann/json.git
-	GIT_PROGRESS   TRUE
-	SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rd_party/nlohmann_json"
+	URL ${URL_NLOHMANN_JSON}
+	SOURCE_DIR ${NLOHMANN_JSON_ROOTDIR}
 	)
 else()
 FetchContent_Declare(nlohmann_json
-	SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rd_party/nlohmann_json"
+	SOURCE_DIR ${NLOHMANN_JSON_ROOTDIR}
 )
 endif()
 FetchContent_MakeAvailable(nlohmann_json)
+
+include_directories(
+	${NLOHMANN_JSON_ROOTDIR}/include
+	)
 
 # my own libraries
 add_library(getopt
@@ -95,7 +101,6 @@ target_link_libraries(onnx_interp
 	onnxruntime
 	#onnxruntime_providers_shared
 	getopt
-	nlohmann_json
 	)
 
 # installation
