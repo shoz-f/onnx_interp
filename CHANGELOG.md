@@ -1,5 +1,10 @@
 # Changelog
 
+## Release 0.1.5(Aug 2 2022)
+
+  * Breaking Changes
+    * the previous download source of nlohmann-json is gone, so changed to another one.
+
 ## Release 0.1.4(Aug 2 2022)
 
   * Bug Fixes and Other Changes
