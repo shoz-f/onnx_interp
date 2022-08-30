@@ -189,6 +189,7 @@ float         sigma)
 std::string
 non_max_suppression_multi_class(SysInfo&, const void* args)
 {
+    PACK(
     struct Prms {
         unsigned int num_boxes;
         unsigned int box_repr;
@@ -197,7 +198,7 @@ non_max_suppression_multi_class(SysInfo&, const void* args)
         float         score_threshold;
         float         sigma;
         float         table[0];
-    } __attribute__((packed));
+    });
     const Prms*  prms = reinterpret_cast<const Prms*>(args);
 
     return non_max_suppression_multi_class(

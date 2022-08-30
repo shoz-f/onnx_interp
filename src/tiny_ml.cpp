@@ -61,14 +61,15 @@ set_input_tensor(TinyMLInterp* interp, const void* args)
 {
     int res;
 
+    PACK(
     struct Prms {
         unsigned int size;
         unsigned int index;
         unsigned int dtype;
-        float         min;
-        float         max;
-        uint8_t        data[1];
-    } __attribute__((packed));
+        float        min;
+        float        max;
+        uint8_t      data[1];
+    });
     const Prms*  prms = reinterpret_cast<const Prms*>(args);
     const int prms_size = sizeof(prms->size) + prms->size;
     const int data_size = prms_size - sizeof(Prms) + sizeof(uint8_t);
@@ -150,7 +151,7 @@ get_output_tensor(SysInfo& sys, const void* args)
 {
     struct Prms {
         unsigned int index;
-    } __attribute__((packed));
+    };
     const Prms*  prms = reinterpret_cast<const Prms*>(args);
 
     if (prms->index >= sys.mInterp->OutputCount()) {
@@ -179,10 +180,11 @@ std::string
 run(SysInfo& sys, const void* args)
 {
     // set input tensors
+    PACK(
     struct Prms {
         unsigned int  count;
         unsigned char data[0];
-    } __attribute__((packed));
+    });
     const Prms* prms = reinterpret_cast<const Prms*>(args);
 
     sys.start_watch();
@@ -282,10 +284,11 @@ interp(std::string& model, std::string& labels)
         }
 
         // command branch
+        PACK(
         struct Cmd {
             unsigned int cmd;
             uint8_t        args[1];
-        } __attribute__((packed));
+        });
         const Cmd& call = *reinterpret_cast<const Cmd*>(cmd_line.data());
 
         std::string&& result = (call.cmd < gMaxCmd) ? gCmdTbl[call.cmd](gSys, call.args)
