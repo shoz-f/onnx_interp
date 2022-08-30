@@ -1,5 +1,10 @@
 # Changelog
 
+## Release 0.1.6(Aug 30 2022)
+
+  * Bug Fixes and Other Changes
+    * Fixed a miscalculation in the size of the input tensor.
+
 ## Release 0.1.5(Aug 2 2022)
 
   * Breaking Changes
