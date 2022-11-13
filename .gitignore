@@ -28,3 +28,6 @@ onnx_interp-*.tar
 *~
 toolchains/
 3rd_party/
+*.onnx
+*.tflite
+*.jpg
