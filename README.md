@@ -20,7 +20,7 @@ You can install it by adding `onnx_interp` to the `mix.exs` dependency list as f
 ```elixir
 def deps do
   [
-    {:onnx_interp, "~> 0.1.2"}
+    {:onnx_interp, "~> 0.1.8"}
   ]
 end
 ```

@@ -45,10 +45,10 @@ public:
 
         case 0:
         default:
-            mBBox[0] = box[0] - box[2]/2.0;
-            mBBox[1] = box[1] - box[3]/2.0;
-            mBBox[2] = box[0] + box[2]/2.0;
-            mBBox[3] = box[1] + box[3]/2.0;
+            mBBox[0] = static_cast<float>(box[0] - box[2]/2.0);
+            mBBox[1] = static_cast<float>(box[1] - box[3]/2.0);
+            mBBox[2] = static_cast<float>(box[0] + box[2]/2.0);
+            mBBox[3] = static_cast<float>(box[1] + box[3]/2.0);
             mArea = box[2]*box[3];
             break;
         }
@@ -137,11 +137,11 @@ float         sigma)
     std::priority_queue<Box> candidates;
 
     // run nms over each classification class.
-    for (int class_id = 0; class_id < num_class; class_id++) {
+    for (unsigned int class_id = 0; class_id < num_class; class_id++) {
         // pick up candidates for focus class
         const float* _boxes  = boxes;
         const float* _scores = scores;
-        for (int i = 0; i < num_boxes; i++, _boxes += 4, _scores += num_class) {
+        for (unsigned int i = 0; i < num_boxes; i++, _boxes += 4, _scores += num_class) {
             if (_scores[class_id] > score_threshold) {
                 candidates.emplace(_boxes, _scores[class_id], box_repr);
             }
@@ -197,7 +197,7 @@ non_max_suppression_multi_class(SysInfo&, const void* args)
         float         iou_threshold;
         float         score_threshold;
         float         sigma;
-        float         table[0];
+        float         table[1];
     });
     const Prms*  prms = reinterpret_cast<const Prms*>(args);
 

@@ -11,6 +11,7 @@
 /**************************************************************************{{{*/
 
 #include <stdio.h>
+#include "tensor_spec.h"
 #include "onnx_interp.h"
 
 /***  Module Header  ******************************************************}}}*/
@@ -22,24 +23,9 @@
 * @retval
 **/
 /**************************************************************************{{{*/
-void init_interp(SysInfo& sys, std::string& onnx_model)
+void init_interp(SysInfo& sys, std::string& model, std::string& itempl, std::string& otempl)
 {
-    // load tensor flow lite model
-//    CHECK(g_ort2->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "onnx_interp", &sys.mEnv));
-//
-//    CHECK(g_ort2->CreateSessionOptions(&sys.mSessionOptions));
-//    CHECK(g_ort2->SetIntraOpNumThreads(sys.mSessionOptions, sys.mNumThread));
-//    CHECK(g_ort2->SetSessionGraphOptimizationLevel(sys.mSessionOptions, ORT_ENABLE_BASIC));
-//
-//    std::wstring widestr = std::wstring(onnx_model.begin(), onnx_model.end());
-//    CHECK(g_ort2->CreateSession(sys.mEnv, widestr.c_str(), sys.mSessionOptions, &sys.mSession));
-
-//    if (sys.mInterpreter->AllocateTensors() != kTfLiteOk) {
-//        std::cerr << "error: AllocateTensors()\n";
-//        exit(1);
-//    }
-
-    sys.mInterp = new OnnxInterp(onnx_model);
+    sys.mInterp = new OnnxInterp(model, itempl, otempl);
 }
 
 /***  Module Header  ******************************************************}}}*/
@@ -117,7 +103,10 @@ Ort::Value& value)
 *   construct an instance.
 **/
 /**************************************************************************{{{*/
-OnnxInterp::OnnxInterp(std::string onnx_model)
+OnnxInterp::OnnxInterp(
+std::string onnx_model,
+std::string& itempl,
+std::string& otempl)
 {
     Ort::AllocatorWithDefaultOptions _ort_alloc;
     Ort::SessionOptions session_options;
@@ -128,6 +117,8 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
 #elif __GNUC__
     mSession = Ort::Session(mEnv, onnx_model.c_str(), session_options);
 #endif
+
+    TensorSpec ispec(itempl, false);
 
     mInputCount = mSession.GetInputCount();
     mInputNames = new char*[mInputCount];
@@ -143,13 +134,17 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
         for (int j = 0; j < shape_len; j++) {
-            if (shape[j] == -1) { shape[j] = 1; }
+            if (shape[j] == -1) {
+                shape[j] = (ispec.mDType != TensorSpec::DTYPE_NONE) ? ispec.mShape[j] : 1;
+            }
         }
 
         mInput.emplace_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
 
         delete [] shape;
     }
+
+    TensorSpec ospec(otempl, false);
 
     mOutputCount = mSession.GetOutputCount();
     mOutputNames = new char*[mOutputCount];
@@ -165,7 +160,9 @@ OnnxInterp::OnnxInterp(std::string onnx_model)
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
         for (int j = 0; j < shape_len; j++) {
-            if (shape[j] == -1) { shape[j] = 1; }
+            if (shape[j] == -1) {
+                shape[j] = (ospec.mDType != TensorSpec::DTYPE_NONE) ? ospec.mShape[j] : 1;
+            }
         }
 
         mOutput.push_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
@@ -200,7 +197,6 @@ OnnxInterp::~OnnxInterp()
 /**
 * query dimension of input tensor
 * @par DESCRIPTION
-*
 *
 * @retval
 **/
@@ -280,7 +276,6 @@ OnnxInterp::info(json& res)
 * set input tensor
 * @par DESCRIPTION
 *
-*
 * @retval
 **/
 /**************************************************************************{{{*/
@@ -300,7 +295,6 @@ OnnxInterp::set_input_tensor(unsigned int index, const uint8_t* data, int size)
 /**
 * set input tensor
 * @par DESCRIPTION
-*
 *
 * @retval
 **/
@@ -326,7 +320,6 @@ OnnxInterp::set_input_tensor(unsigned int index, const uint8_t* data, int size, 
 * execute inference
 * @par DESCRIPTION
 *
-*
 * @retval
 **/
 /**************************************************************************{{{*/
@@ -341,7 +334,6 @@ OnnxInterp::invoke()
 /**
 * get result tensor
 * @par DESCRIPTION
-*
 *
 * @retval
 **/

@@ -30,6 +30,8 @@ using json = nlohmann::json;
 #define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
 #endif
 
+#include "tensor_spec.h"
+
 /***  Class Header  *******************************************************}}}*/
 /**
 * Abstruct Tiny ML Interpreter
@@ -121,7 +123,7 @@ int snd_packet_port(std::string result);
 /**************************************************************************}}}**
 * service call functions
 ***************************************************************************{{{*/
-void interp(std::string& model, std::string& labels);
-void init_interp(SysInfo& sys, std::string& model);
+void interp(std::string& model, std::string& labels, std::string& inputs, std::string& outputs);
+void init_interp(SysInfo& sys, std::string& model, std::string& inputs, std::string& outputs);
 
 #endif /* _TINY_ML_H */

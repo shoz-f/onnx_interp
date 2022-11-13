@@ -1,5 +1,17 @@
 # Changelog
 
+## Release 0.1.7(Nov 13 2022)
+
+  * Major Features and Improvements
+    * added the ability to download model files from the url.
+    * added the ability to give hints about I/O tensor of the model.
+    * added example of ViT image classification.
+
+## Release 0.1.7(Sep 5 2022)
+
+  * Bug Fixes and Other Changes
+    * Fixed compilers config in mix.exs.
+
 ## Release 0.1.6(Aug 30 2022)
 
   * Bug Fixes and Other Changes

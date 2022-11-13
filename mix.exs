@@ -4,10 +4,10 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.6",
+      version: "0.1.8",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
-      #compilers: [:cmake] ++ Mix.compilers(),
+      compilers: [:cmake] ++ Mix.compilers(),
       description: description(),
       package: package(),
       deps: deps(),
@@ -33,6 +33,7 @@ defmodule OnnxInterp.MixProject do
   defp deps do
     [
       {:poison, "~> 5.0"},
+      {:httpoison, "~> 1.8"},
       {:mix_cmake, "~> 0.1.3"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]

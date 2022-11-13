@@ -15,6 +15,7 @@
 #include <io.h>
 #endif
 
+#include <string>
 #include "tiny_ml.h"
 #include "getopt/getopt.h"
 
@@ -37,6 +38,8 @@ void usage()
     std::cout
       << "onnx_interp [opts] <model.onnx> <class.label>\n"
       << "\toption:\n"
+      << "\t  -i <spec> : input tensor spec - \"f4,1,3,224,224\"\n"
+      << "\t  -o <spec> : output tensor spec - \"f4,1,1000\"\n"
       << "\t  -d <num> : diagnosis mode\n"
       << "\t             1 = save the formed image\n"
       << "\t             2 = save model's input/output tensors\n"
@@ -55,8 +58,10 @@ void usage()
 int
 main(int argc, char* argv[])
 {
-	int opt, longindex;
+	int opt;
 	const struct option longopts[] = {
+	    {"inputs",   required_argument, NULL, 'i'},
+	    {"outputs",  required_argument, NULL, 'o'},
 		{"debug",    required_argument, NULL, 'd'},
         {"parallel", required_argument, NULL, 'j'},
 		{0,0,0,0}
@@ -67,12 +72,21 @@ main(int argc, char* argv[])
     gSys.mNumThread = 4;
     gSys.reset_lap();
 
+    std::string inputs;
+    std::string outputs;
+
 	for (;;) {
-		opt = getopt_long(argc, argv, "d:j:", longopts, NULL);
+		opt = getopt_long(argc, argv, "i:o:d:j:", longopts, NULL);
 		if (opt == -1) {
 			break;
 		}
 		else switch (opt) {
+		case 'i':
+		    inputs = optarg;
+		    break;
+		case 'o':
+		    outputs = optarg;
+		    break;
 		case 'd':
 			break;
         case 'j':
@@ -109,7 +123,7 @@ main(int argc, char* argv[])
 	gSys.mSnd = snd_packet_port;
 
     // run interpreter
-    interp(gSys.mModelPath, gSys.mLabelPath);
+    interp(gSys.mModelPath, gSys.mLabelPath, inputs, outputs);
 
     return 0;
 }

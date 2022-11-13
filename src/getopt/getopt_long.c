@@ -47,8 +47,7 @@ static char * __progname __P((char *));
 int getopt_internal __P((int, char * const *, const char *));
 
 static char *
-__progname(nargv0)
-	char * nargv0;
+__progname(char* nargv0)
 {
 	char * tmp;
 
@@ -71,10 +70,7 @@ __progname(nargv0)
  *	Parse argc/argv argument vector.
  */
 int
-getopt_internal(nargc, nargv, ostr)
-	int nargc;
-	char * const *nargv;
-	const char *ostr;
+getopt_internal(int nargc, char* const *nargv, const char* ostr)
 {
 	static char *place = EMSG;		/* option letter processing */
 	char *oli;				/* option letter list index */
@@ -137,10 +133,7 @@ getopt_internal(nargc, nargv, ostr)
  *	Parse argc/argv argument vector.
  */
 int
-getopt2(nargc, nargv, ostr)
-	int nargc;
-	char * const *nargv;
-	const char *ostr;
+getopt2(int nargc, char* const *nargv, const char* ostr)
 {
 	int retval;
 
@@ -157,12 +150,7 @@ getopt2(nargc, nargv, ostr)
  *	Parse argc/argv argument vector.
  */
 int
-getopt_long(nargc, nargv, options, long_options, index)
-	int nargc;
-	char ** nargv;
-	const char * options;
-	const struct option * long_options;
-	int * index;
+getopt_long(int nargc, char** nargv, const char* options, const struct option* long_options, int* index)
 {
 	int retval;
 

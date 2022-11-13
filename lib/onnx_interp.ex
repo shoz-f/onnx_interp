@@ -52,7 +52,17 @@ defmodule OnnxInterp do
   """
 
   @timeout 300000
-  @padding 0
+
+  @framework "onnxruntime"
+  
+  # the suffix expected for the model
+  suffix = %{
+    "tflite"      => ".tflite",
+    "onnxruntime" => ".onnx",
+    "libtorch"    => ".pt"
+  }
+  @model_suffix suffix[String.downcase(@framework)]
+
 
   defmacro __using__(opts) do
     quote generated: true, location: :keep do
@@ -65,17 +75,31 @@ defmodule OnnxInterp do
       def init(opts) do
         executable = Application.app_dir(:onnx_interp, "priv/onnx_interp")
         opts = Keyword.merge(unquote(opts), opts)
-        onnx_model = Keyword.get(opts, :model)
-        onnx_label = Keyword.get(opts, :label, "none")
-        onnx_opts  = Keyword.get(opts, :opts, "")
+        nn_model   = OnnxInterp.validate_model(Keyword.get(opts, :model), Keyword.get(opts, :url))
+        nn_label   = Keyword.get(opts, :label, "none")
+        nn_inputs  = Keyword.get(opts, :inputs, [])
+        nn_outputs = Keyword.get(opts, :outputs, [])
+        nn_opts    = Keyword.get(opts, :opts, "")
 
         port = Port.open({:spawn_executable, executable}, [
-          {:args, String.split(onnx_opts) ++ [onnx_model, onnx_label]},
+          {:args, String.split(nn_opts) ++ opt_tspecs("--inputs", nn_inputs) ++ opt_tspecs("--outputs", nn_outputs) ++ [nn_model, nn_label]},
           {:packet, 4},
           :binary
         ])
 
         {:ok, %{port: port}}
+      end
+
+      defp opt_tspecs(_, []), do: []
+      defp opt_tspecs(opt_name, tspecs) do
+        [opt_name, Enum.map(tspecs, &tspec2str/1) |> Enum.join(":")]
+      end
+
+      defp tspec2str({:skip, _}), do: ""
+      defp tspec2str({dtype, shape}) do
+        dtype = Atom.to_string(dtype)
+        shape = Tuple.to_list(shape) |> Enum.map(fn :none->1; x->x end) |> Enum.join(",")
+        "#{dtype},#{shape}"
       end
 
       def session() do
@@ -101,7 +125,42 @@ defmodule OnnxInterp do
   defstruct module: nil, input: [], output: []
 
   @doc """
-  Get the propaty of the onnx model.
+  Get name of backend NN framework.
+  """
+  def framework() do
+    @framework
+  end
+
+  @doc """
+  Ensure that the back-end framework is as expected.
+  """
+  def framework?(name) do
+    unless String.downcase(name) == String.downcase(@framework),
+      do: raise "Error: backend NN framework is \"#{@framework}\", not \"#{name}\"."
+  end
+
+  @doc """
+  Ensure that the model matches the back-end framework.
+  """
+  def validate_model(nil, _), do: raise("error: need a model file \"#{@model_suffix}\".")
+  def validate_model(model, url) do
+    validate_extname!(model)
+    unless File.exists?(model) do
+        validate_extname!(url)
+        OnnxInterp.URL.download(url, Path.dirname(model), Path.basename(model))
+    end
+    model
+  end
+
+  defp validate_extname!(model) do
+    actual = Path.extname(model)
+    unless actual == @model_suffix,
+      do: raise "error: #{@framework} expects the model file \"#{@model_suffix}\" not \"#{actual}\"."
+    :ok
+  end
+
+  @doc """
+  Get the propaty of the model.
 
   ## Parameters
 
