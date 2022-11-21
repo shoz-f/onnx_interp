@@ -63,7 +63,7 @@ defmodule OnnxInterp.MixProject do
     [
       # Specify generator name.
       # "cmake --help" shows you build-in generators list.
-      generator: "Visual Studio 16 2019",
+#      generator: "Visual Studio 16 2019",
 
       # Specify CPU architecture
       platform: "x64",
