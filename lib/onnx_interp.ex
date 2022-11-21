@@ -224,22 +224,6 @@ defmodule OnnxInterp do
   end
 
   @doc """
-  Invoke prediction.
-
-  ## Parameters
-
-    * mod - modules' names
-  """
-  def invoke(mod) when is_atom(mod) do
-    cmd = 2
-    case GenServer.call(mod, <<cmd::little-integer-32>>, @timeout) do
-      {:ok, result} -> Poison.decode(result)
-      any -> any
-    end
-    mod
-  end
-
-  @doc """
   Get the flat binary from the output tensor on the interpreter.
 
   ## Parameters
@@ -260,24 +244,36 @@ defmodule OnnxInterp do
   end
 
   @doc """
-  Execute the inference session. In session mode, data input/execution of
-  inference/output of results to the DL model is done all at once.
+  Invoke prediction.
+  
+  Two modes are toggled depending on the type of input data.
+  One is the stateful mode, in which input/output data are stored as model states.
+  The other mode is stateless, where input/output data is stored in a session
+  structure assigned to the application.
 
   ## Parameters
 
-    * session - session.
+    * mod/session - modules name(stateful) or session structure(stateless).
 
   ## Examples.
 
     ```elixir
-      output_bin =
-        session()
+      output_bin = session()  # stateless mode
         |> OnnxInterp.set_input_tensor(0, input_bin)
-        |> OnnxInterp.run()
+        |> OnnxInterp.invoke()
         |> OnnxInterp.get_output_tensor(0)
     ```
   """
-  def run(%OnnxInterp{module: mod, input: input}=session) do
+  def invoke(mod) when is_atom(mod) do
+    cmd = 2
+    case GenServer.call(mod, <<cmd::little-integer-32>>, @timeout) do
+      {:ok, result} -> Poison.decode(result)
+      any -> any
+    end
+    mod
+  end
+
+  def invoke(%OnnxInterp{module: mod, input: input}=session) do
     cmd   = 4
     count = Enum.count(input)
     data  = Enum.reduce(input, <<>>, fn x,acc -> acc <> x end)
@@ -291,6 +287,9 @@ defmodule OnnxInterp do
       any -> any
     end
   end
+
+  @deprecated "Use invoke/1 instead"
+  def run(x), do: invoke(x)
 
   @doc """
   Execute post processing: nms.
@@ -307,9 +306,9 @@ defmodule OnnxInterp do
       * score_threshold: - score cutoff threshold
       * sigma:           - soft IOU parameter
       * boxrepr:         - type of box representation
-         * 0 - center pos and width/height
-         * 1 - top-left pos and width/height
-         * 2 - top-left and bottom-right corner pos
+         * :center  - center pos and width/height
+         * :topleft - top-left pos and width/height
+         * :corner  - top-left and bottom-right corner pos
   """
 
   def non_max_suppression_multi_class(mod, {num_boxes, num_class}, boxes, scores, opts \\ []) do
@@ -329,5 +328,26 @@ defmodule OnnxInterp do
       {:ok, result} -> Poison.decode(result)
       any -> any
     end
+  end
+
+
+  @doc """
+  Adjust NMS result to aspect of the input image. (letterbox)
+  
+  ## Parameters:
+  
+    * res - NMS result %{}
+    * [rx, ry] - aspect ratio of the input image
+  """
+  def adjust2letterbox(res, [rx, ry] \\ [1.0, 1.0]) do
+    Enum.reduce(Map.keys(res), res, fn key,map ->
+      Map.update!(map, key, &Enum.map(&1, fn [score, x1, y1, x2, y2] ->
+        x1 = if x1 < 0.0, do: 0.0, else: x1
+        y1 = if y1 < 0.0, do: 0.0, else: y1
+        x2 = if x2 > 1.0, do: 1.0, else: x2
+        y2 = if y2 > 1.0, do: 1.0, else: y2
+        [score, x1/rx, y1/ry, x2/rx, y2/ry]
+      end))
+    end)
   end
 end

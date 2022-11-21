@@ -32,7 +32,7 @@ public:
             mBBox[1] = box[1];
             mBBox[2] = box[2];
             mBBox[3] = box[3];
-            mArea = (box[2]-box[0]+1)*(box[3]-box[1]+1);
+            mArea = (box[2]-box[0])*(box[3]-box[1]);
             break;
 
         case 1:
