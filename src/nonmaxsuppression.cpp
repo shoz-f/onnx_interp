@@ -25,7 +25,9 @@
 class Box {
 //LIFECYCLE:
 public:
-    Box(const float box[4], float score, unsigned int box_repr=0) {
+    Box(unsigned int index, const float box[4], float score, unsigned int box_repr=0) {
+        mIndex = index;
+
         switch (box_repr) {
         case 2:
             mBBox[0] = box[0];
@@ -88,6 +90,7 @@ public:
         result.push_back(mBBox[1]);
         result.push_back(mBBox[2]);
         result.push_back(mBBox[3]);
+        result.push_back(mIndex);
         return result;
     }
 
@@ -103,6 +106,7 @@ public:
 
 //ATTRIBUTE:
 protected:
+    unsigned int mIndex;
     float         mBBox[4];
     float         mArea;
     float         mScore;
@@ -143,7 +147,7 @@ float         sigma)
         const float* _scores = scores;
         for (unsigned int i = 0; i < num_boxes; i++, _boxes += 4, _scores += num_class) {
             if (_scores[class_id] > score_threshold) {
-                candidates.emplace(_boxes, _scores[class_id], box_repr);
+                candidates.emplace(i, _boxes, _scores[class_id], box_repr);
             }
         }
         if (candidates.empty()) continue;

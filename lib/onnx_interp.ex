@@ -146,8 +146,8 @@ defmodule OnnxInterp do
   def validate_model(model, url) do
     validate_extname!(model)
     unless File.exists?(model) do
-        validate_extname!(url)
-        OnnxInterp.URL.download(url, Path.dirname(model), Path.basename(model))
+        #validate_extname!(url)
+        {:ok, _} = OnnxInterp.URL.download(url, Path.dirname(model), Path.basename(model))
     end
     model
   end
@@ -336,18 +336,25 @@ defmodule OnnxInterp do
   
   ## Parameters:
   
-    * res - NMS result %{}
+    * nms_result - NMS result {:ok, result}
     * [rx, ry] - aspect ratio of the input image
   """
-  def adjust2letterbox(res, [rx, ry] \\ [1.0, 1.0]) do
-    Enum.reduce(Map.keys(res), res, fn key,map ->
-      Map.update!(map, key, &Enum.map(&1, fn [score, x1, y1, x2, y2] ->
-        x1 = if x1 < 0.0, do: 0.0, else: x1
-        y1 = if y1 < 0.0, do: 0.0, else: y1
-        x2 = if x2 > 1.0, do: 1.0, else: x2
-        y2 = if y2 > 1.0, do: 1.0, else: y2
-        [score, x1/rx, y1/ry, x2/rx, y2/ry]
-      end))
-    end)
+  def adjust2letterbox(nms_result, aspect \\ [1.0, 1.0])
+
+  def adjust2letterbox({:ok, result}, [rx, ry]) do
+    {
+      :ok,
+      Enum.reduce(Map.keys(result), result, fn key,map ->
+        Map.update!(map, key, &Enum.map(&1, fn [score, x1, y1, x2, y2, index] ->
+          x1 = if x1 < 0.0, do: 0.0, else: x1
+          y1 = if y1 < 0.0, do: 0.0, else: y1
+          x2 = if x2 > 1.0, do: 1.0, else: x2
+          y2 = if y2 > 1.0, do: 1.0, else: y2
+          [score, x1/rx, y1/ry, x2/rx, y2/ry, index]
+        end))
+      end)
+    }
   end
+  
+  def adjust2letterbox(nms_result, _), do: nms_result
 end
