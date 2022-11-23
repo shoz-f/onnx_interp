@@ -9,10 +9,10 @@ defmodule OnnxInterp.URL do
   def download(url, func) when is_function(func) do
     IO.puts("Downloading \"#{url}\".")
 
-    with {:ok, res} <- HTTPoison.get(url, [], follow_redirect: true) do
-      IO.puts("...processing.")
-      func.(res.body)
-    end
+    response = get!(url)
+
+    IO.puts("...processing.")
+    func.(response.body)
   end
 
   @doc """
@@ -26,19 +26,58 @@ defmodule OnnxInterp.URL do
   def download(url, path \\ "./", name \\ nil) do
     IO.puts("Downloading \"#{url}\".")
 
-    with {:ok, res} <- HTTPoison.get(url, [], follow_redirect: true),
-      {_, <<"attachment; filename=", fname::binary>>} <- List.keyfind(res.headers, "Content-Disposition", 0),
-      :ok <- File.mkdir_p(path)
-    do
-      Path.join(path, name||fname)
-      |> save(res.body)
+    response = get!(url)
+
+    name = name || case attachment_filename(response.headers) do
+      {:ok, name} -> name
+      _ -> IO.puts("** 'noname.bin' was used due to lack of a valid file name **")
+           "noname.bin"
     end
+
+    File.mkdir_p(path)
+
+    Path.join(path, name)
+    |> save(response.body)
   end
 
   defp save(file, bin) do
     with :ok <- File.write(file, bin) do
       IO.puts("...finish.")
       {:ok, file}
+    end
+  end
+
+  defp get!(url) do
+    http_opts = [
+      ssl: [
+        verify: :verify_peer,
+        cacertfile: CAStore.file_path(),
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ]
+    ]
+
+    case :httpc.request(:get, {url, []}, http_opts, body_format: :binary) do
+      {:ok, {{_, status, _}, headers, body}} ->
+        if status >= 400 do
+          raise "HTTP #{status} #{inspect(body)}"
+        else
+          %{status: status, headers: headers, body: body}
+        end
+
+      {:error, reason} ->
+        raise inspect(reason)
+    end
+  end
+  
+  defp attachment_filename(headers) do
+    with {_, cd} <- List.keyfind(headers, 'content-disposition', 0),
+         [[_, fname]] <- Regex.scan(~r/filename="?(.+)"?/, List.to_string(cd))
+    do
+      {:ok, fname}
+    else
+      _ -> :none
     end
   end
 end
