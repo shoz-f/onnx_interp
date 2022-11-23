@@ -22,7 +22,7 @@ defmodule DemoViT.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:nx, "~> 0.2.1"},
+      {:nx, "~> 0.4.0"},
       {:cimg, github: "shoz-f/cimg_ex"},
       {:onnx_interp, path: ".."}
     ]

@@ -24,8 +24,8 @@ defmodule DemoYolo2.MixProject do
     [
       {:cimg, github: "shoz-f/cimg_ex"},
       {:onnx_interp, path: "..", env: :test},
-      {:nx, "~> 0.2.1"},
-      {:postdnn, "~> 0.1.2"},
+      {:nx, "~> 0.4.0"},
+      {:postdnn, "~> 0.1.3"},
       {:npy, github: "shoz-f/npy_ex"}
     ]
   end

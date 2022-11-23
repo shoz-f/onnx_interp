@@ -24,7 +24,7 @@ defmodule DemoVGG16.MixProject do
     [
       {:cimg, github: "shoz-f/cimg_ex"},
       {:onnx_interp, path: "..", env: :test},
-      {:nx, "~> 0.2.1"}
+      {:nx, "~> 0.4.0"}
     ]
   end
 end

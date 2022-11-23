@@ -1,5 +1,4 @@
 defmodule DemoYolo7 do
-  # use OnnxInterp, model: Helper.model(), label: Helper.label()
   use OnnxInterp, model: "./yolov7.onnx", label: "./coco.label"
 
   @yolo7_shape {640, 480}
