@@ -1,9 +1,9 @@
-defmodule CandyDemo.MixProject do
+defmodule DemoCandy.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :candy_demo,
+      app: :demo_candy,
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
@@ -15,15 +15,15 @@ defmodule CandyDemo.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {CandyDemo.Application, []}
+      mod: {DemoCandy.Application, []}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cimg, github: "shoz-f/cimg_ex"},
-      {:onnx_interp, path: "..", env: :test}
+      {:onnx_interp, path: "..", env: :test},
+      {:cimg, github: "shoz-f/cimg_ex"}
     ]
   end
 end
