@@ -1,6 +1,6 @@
 # Changelog
 
-## Release 0.1.7(Nov 13 2022)
+## Release 0.1.8(Nov 13 2022)
 
   * Major Features and Improvements
     * added the ability to download model files from the url.
