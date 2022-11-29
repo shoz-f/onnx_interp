@@ -2,6 +2,8 @@
 Onnx runtime interpreter for Elixir.
 It is a Deep Learning inference framework that can be used in the same way as my TflInterp.
 
+[**ATTENSION**: OnnxInterp v0.1.8 is last release! OnnxInterp will be integrated into NNInterp, so please use NNIterp instead.]
+
 ## Platform
 I have confirmed it works in the following OS environment.
 
@@ -72,7 +74,7 @@ end
 
 ## Demo
 There is Fast Neural Style Transfer: Candy demo in the demo directory.
-This demo artistically converts a photo of a frog 'flog.jpg' in the demo directory and saves it as 'candy_flog.jpg'.
+This demo artistically converts a photo of a frog 'flog.jpg' in the demo directory and saves it as 'candy.jpg'.
 
 First, you download the trained DNN model "candy-9.onnx" from the following URL and place it in the demo directory.
 
@@ -83,8 +85,10 @@ You can run the demo by following these steps.
 ```shell
 $ cd demo
 $ mix deps.get
-$ mix run -e "CandyDemo.demo"
+$ mix run -e "DemoCandy.run"
 ```
+
+You get "candy.jpg" in current directory.
 
 Let's enjoy ;-)
 

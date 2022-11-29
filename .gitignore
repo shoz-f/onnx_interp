@@ -25,9 +25,7 @@ onnx_interp-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
-*~
-toolchains/
 3rd_party/
+priv/
 *.onnx
-*.tflite
-*.jpg
+*.lock
