@@ -9,6 +9,7 @@
     unknown -> raise("** COMILE ERROR: unknon dnn model: '#{unknown}'. it must be one of {vit, vgg16, resnet18} **")
   end
 
+
 defmodule ImageClassify do
   @moduledoc """
   ## Original work:

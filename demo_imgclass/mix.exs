@@ -23,7 +23,7 @@ defmodule DemoClassify.MixProject do
   defp deps do
     [
       {:onnx_interp, path: ".."},
-      {:cimg, github: "shoz-f/cimg_ex"},
+      {:cimg, "~> 0.1.14"},
       {:nx, "~> 0.4.0"}
     ]
   end
