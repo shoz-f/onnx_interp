@@ -22,9 +22,10 @@ defmodule DemoNanoDet.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cimg, github: "shoz-f/cimg_ex"},
-      {:onnx_interp, path: "..", env: :test},
-      {:nx, "~> 0.4.0"},
+      {:onnx_interp, path: ".."},
+      {:cimg, "~> 0.1.14"},
+      {:postdnn, "~> 0.1.5"},
+      {:nx, "~> 0.4.0"}
     ]
   end
 end

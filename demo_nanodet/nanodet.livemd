@@ -1,21 +1,61 @@
+# NanoDet plus
+
+```elixir
+File.cd!(__DIR__)
+# for windows JP
+System.shell("chcp 65001")
+
+Mix.install([
+  {:demo_nanodet, path: "."},
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## 0.Original work
+
+NanoDet-Plus
+
+* https://github.com/RangiLyu/nanodet
+
+***Thanks a lot!!!***
+
+---
+
+## Implementation with OnnxInterp in Elixir
+
+## Let's try it
+
+```elixir
 defmodule DemoNanoDet do
   @palette CImg.Util.rand_palette("./model/coco.label")
 
   def run(filename \\ "dog.jpg") do
     img = CImg.load(filename)
-    
+
     # NanoDet prediciton
     {:ok, res} = NanoDet.apply(img)
 
     # draw result box
     Enum.reduce(res, CImg.builder(img), &draw_item(&1, &2))
-    |> CImg.save("nanodet.jpg")
+    |> CImg.display_kino(:jpeg)
   end
-  
+
   defp draw_item({name, boxes}, canvas) do
     color = @palette[name]
+
     Enum.reduce(boxes, canvas, fn [_score, x1, y1, x2, y2, _index], img ->
       CImg.fill_rect(img, x1, y1, x2, y2, color, 0.3)
     end)
   end
 end
+```
+
+Load a photo and apply NanoDet to it.
+
+```elixir
+DemoNanoDet.run("dog.jpg")
+```
+
+## TIL ;-)
+
+&#9633;
