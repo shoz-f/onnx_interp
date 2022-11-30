@@ -40,7 +40,9 @@ extern int	  optopt;	/* character checked for validity */
 extern int	  optreset;	/* reset getopt */
 extern char *optarg;	/* argument associated with option */
 
+#ifndef __P
 #define __P(x) x
+#endif
 #define _DIAGASSERT(x) assert(x)
 
 static char * __progname __P((char *));

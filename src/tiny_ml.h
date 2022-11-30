@@ -86,7 +86,7 @@ struct SysInfo {
     int (*mRcv)(std::string& cmd_line);
     int (*mSnd)(std::string result);
 
-    std::string label(int id) {
+    std::string label(size_t id) {
         return (id < mLabel.size()) ? mLabel[id] : std::to_string(id);
     }
 

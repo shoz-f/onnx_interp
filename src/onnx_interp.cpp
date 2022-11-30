@@ -85,7 +85,7 @@ Ort::Value& value)
     size_t shape_len = tensor_info.GetDimensionsCount();
     int64_t* shape = new int64_t[shape_len];
     tensor_info.GetDimensions(shape, shape_len);
-    for (int j = 0; j < shape_len; j++) {
+    for (size_t j = 0; j < shape_len; j++) {
         if (shape[j] == -1) { shape[j] = 1; }
 
         size *= shape[j];
@@ -122,7 +122,7 @@ std::string& otempl)
 
     mInputCount = mSession.GetInputCount();
     mInputNames = new char*[mInputCount];
-    for (int i = 0; i < mInputCount; i++) {
+    for (size_t i = 0; i < mInputCount; i++) {
         mInputNames[i] = mSession.GetInputName(i, _ort_alloc);
 
         Ort::TypeInfo type_info = mSession.GetInputTypeInfo(i);
@@ -133,7 +133,7 @@ std::string& otempl)
         size_t shape_len = tensor_info.GetDimensionsCount();
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
-        for (int j = 0; j < shape_len; j++) {
+        for (size_t j = 0; j < shape_len; j++) {
             if (shape[j] == -1) {
                 shape[j] = (ispec.mDType != TensorSpec::DTYPE_NONE) ? ispec.mShape[j] : 1;
             }
@@ -148,7 +148,7 @@ std::string& otempl)
 
     mOutputCount = mSession.GetOutputCount();
     mOutputNames = new char*[mOutputCount];
-    for (int i = 0; i < mOutputCount; i++) {
+    for (size_t i = 0; i < mOutputCount; i++) {
         mOutputNames[i] = mSession.GetOutputName(i, _ort_alloc);
 
         Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(i);
@@ -159,7 +159,7 @@ std::string& otempl)
         size_t shape_len = tensor_info.GetDimensionsCount();
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
-        for (int j = 0; j < shape_len; j++) {
+        for (size_t j = 0; j < shape_len; j++) {
             if (shape[j] == -1) {
                 shape[j] = (ospec.mDType != TensorSpec::DTYPE_NONE) ? ospec.mShape[j] : 1;
             }
@@ -182,12 +182,12 @@ OnnxInterp::~OnnxInterp()
 {
     Ort::AllocatorWithDefaultOptions _ort_alloc;
 
-    for (int i = 0; i < mInputCount; i++) {
+    for (size_t i = 0; i < mInputCount; i++) {
         _ort_alloc.Free(mInputNames[i]);
     }
     delete [] mInputNames;
 
-    for (int i = 0; i < mOutputCount; i++) {
+    for (size_t i = 0; i < mOutputCount; i++) {
         _ort_alloc.Free(mOutputNames[i]);
     }
     delete [] mOutputNames;
@@ -224,7 +224,7 @@ OnnxInterp::info(json& res)
         "BFLOAT16"      // Non-IEEE floating-point format based on IEEE754 single-precision
     };
 
-    for (int index = 0; index < mInputCount; index++) {
+    for (size_t index = 0; index < mInputCount; index++) {
         json onnx_tensor;
 
         onnx_tensor["index"] = index;
@@ -247,7 +247,7 @@ OnnxInterp::info(json& res)
         res["inputs"].push_back(onnx_tensor);
     }
 
-    for (int index = 0; index < mOutputCount; index++) {
+    for (size_t index = 0; index < mOutputCount; index++) {
         json onnx_tensor;
 
         onnx_tensor["index"] = index;
