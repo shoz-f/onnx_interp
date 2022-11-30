@@ -38,7 +38,9 @@ static char sccsid[] = "@(#)getopt.c	8.3 (Berkeley) 4/27/95";
 #include <stdio.h>
 #include <string.h>
 
+#ifndef __P
 #define __P(x) x
+#endif
 #define _DIAGASSERT(x) assert(x)
 
 #ifdef __weak_alias
