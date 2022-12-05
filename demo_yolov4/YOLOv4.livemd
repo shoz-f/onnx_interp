@@ -1,0 +1,135 @@
+# Object Detection: YOLOv4
+
+```elixir
+File.cd!(__DIR__)
+# for windows JP
+# System.shell("chcp 65001")
+
+Mix.install([
+  {:onnx_interp, "~> 0.1.8"},
+  {:cimg, "~> 0.1.14"},
+  {:postdnn, "~> 0.1.5"},
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## 0.Original work
+
+Pytorch-YOLOv4
+
+* https://github.com/Tianxiaomo/pytorch-YOLOv4
+
+This note usee the pretraind model converted from above project ;-)
+
+***Thanks a lot!!!***
+
+---
+
+## Implementation with OnnxInterp in Elixir
+
+## 1.Defining the inference module: YOLOv4
+
+* Model<br>
+  yolov4_1_3_608_608_static.onnx
+
+* Pre-processing<br>
+  Resize the input image to the size {608,608}, normalize to {0.0,1.0} and transpose NCHW.
+
+* Post-processing<br>
+  Filtering Boxes(output[0]) and Scores(output[1]) with Multi-class Non Maximum Suppression.
+
+```elixir
+defmodule YOLOv4 do
+  @moduledoc """
+  Original work:
+    Pytorch-YOLOv4 - https://github.com/Tianxiaomo/pytorch-YOLOv4
+  """
+
+  alias OnnxInterp, as: NNInterp
+
+  use NNInterp,
+    model: "./model/yolov4_1_3_608_608_static.onnx",
+    url:
+      "https://github.com/shoz-f/onnx_interp/releases/download/models/yolov4_1_3_608_608_static.onnx",
+    inputs: [f32: {1, 3, 608, 608}],
+    outputs: [f32: {1, 22743, 1, 4}, f32: {1, 22743, 80}]
+
+  def apply(img) do
+    # preprocess
+    input0 =
+      img
+      |> CImg.resize({608, 608})
+      |> CImg.to_binary([{:range, {0.0, 1.0}}, :nchw])
+
+    # prediction
+    outputs =
+      session()
+      |> NNInterp.set_input_tensor(0, input0)
+      |> NNInterp.invoke()
+
+    # postprocess
+    boxes = NNInterp.get_output_tensor(outputs, 0)
+    scores = NNInterp.get_output_tensor(outputs, 1)
+
+    PostDNN.non_max_suppression_multi_class(
+      {22743, 80},
+      boxes,
+      scores,
+      boxrepr: :corner,
+      label: "./model/coco.label"
+    )
+  end
+end
+```
+
+Launch `YOLOv4`.
+
+```elixir
+# OnnxInterp.stop(Resnet18)
+YOLOv4.start_link([])
+```
+
+Display the properties of the `YOLOv4` model.
+
+```elixir
+OnnxInterp.info(YOLOv4)
+```
+
+## 2.Defining execution module LiveYOLOv4
+
+```elixir
+defmodule LiveYOLOv4 do
+  @palette CImg.Util.rand_palette("./model/coco.label")
+
+  def run(path) do
+    img = CImg.load(path)
+
+    with {:ok, res} <- YOLOv4.apply(img) do
+      IO.inspect(res)
+
+      Enum.reduce(res, CImg.builder(img), &draw_item(&1, &2))
+      |> CImg.display_kino(:jpeg)
+    end
+  end
+
+  defp draw_item({name, boxes}, canvas) do
+    color = @palette[name]
+
+    Enum.reduce(boxes, canvas, fn [_score, x1, y1, x2, y2, _index], canvas ->
+      [x1, y1, x2, y2] = PostDNN.clamp([x1, y1, x2, y2], {0.0, 1.0})
+
+      CImg.fill_rect(canvas, x1, y1, x2, y2, color, 0.35)
+    end)
+  end
+end
+```
+
+## 3.Let's try it
+
+```elixir
+LiveYOLOv4.run("dog.jpg")
+```
+
+## Appendix
+
+&#9633;
