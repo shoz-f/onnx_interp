@@ -26,7 +26,7 @@ defmodule OnnxInterp.URL do
   def download(url, path \\ "./", name \\ nil)
   def download(nil, _, _), do: raise("error: need url of file.")
   def download(url, path, name) do
-    IO.puts("Downloading \"#{url}\".")
+    IO.puts("Downloading from \"#{url}\".")
 
     response = get!(url)
 

@@ -2,7 +2,9 @@ defmodule OnnxInterp do
   @moduledoc """
   Onnx runtime intepreter for Elixir.
   Deep Learning inference framework.
+  """
 
+  @basic_usage """
   ## Basic Usage
   You get the trained onnx model and save it in a directory that your application can read.
   "your-app/priv" may be good choice.
@@ -63,6 +65,8 @@ defmodule OnnxInterp do
   }
   @model_suffix suffix[String.downcase(@framework)]
 
+  # session record
+  defstruct module: nil, inputs: [], outputs: []
 
   defmacro __using__(opts) do
     quote generated: true, location: :keep do
@@ -87,7 +91,33 @@ defmodule OnnxInterp do
           :binary
         ])
 
-        {:ok, %{port: port}}
+        {:ok, %{port: port, itempl: nn_inputs, otempl: nn_outputs}}
+      end
+
+      def session() do
+        %OnnxInterp{module: __MODULE__}
+      end
+
+      def handle_call(cmd_line, _from, state) when is_binary(cmd_line) do
+        Port.command(state.port, cmd_line)
+        response = receive do
+          {_, {:data, <<result::binary>>}} -> {:ok, result}
+        after
+          Keyword.get(unquote(opts), :timeout, 300000) -> {:timeout}
+        end
+        {:reply, response, state}
+      end
+
+      def handle_call({:itempl, index}, _from, %{itempl: template}=state) do
+        {:reply, {:ok, Enum.at(template, index)}, state}
+      end
+
+      def handle_call({:otempl, index}, _from, %{otempl: template}=state) do
+        {:reply, {:ok, Enum.at(template, index)}, state}
+      end
+
+      def terminate(_reason, state) do
+        Port.close(state.port)
       end
 
       defp opt_tspecs(_, []), do: []
@@ -101,28 +131,9 @@ defmodule OnnxInterp do
         shape = Tuple.to_list(shape) |> Enum.map(fn :none->1; x->x end) |> Enum.join(",")
         "#{dtype},#{shape}"
       end
-
-      def session() do
-        %OnnxInterp{module: __MODULE__}
-      end
-
-      def handle_call(cmd_line, _from, state) do
-        Port.command(state.port, cmd_line)
-        response = receive do
-          {_, {:data, <<result::binary>>}} -> {:ok, result}
-        after
-          Keyword.get(unquote(opts), :timeout, 300000) -> {:timeout}
-        end
-        {:reply, response, state}
-      end
-
-      def terminate(_reason, state) do
-        Port.close(state.port)
-      end
     end
   end
 
-  defstruct module: nil, input: [], output: []
 
   @doc """
   Get name of backend NN framework.
@@ -141,22 +152,29 @@ defmodule OnnxInterp do
 
   @doc """
   Ensure that the model matches the back-end framework.
+  
+  ## Parameters
+    * model - path of model file
+    * url - download site
   """
-  def validate_model(nil, _), do: raise("error: need a model file \"#{@model_suffix}\".")
+  def validate_model(nil, _), do: raise ArgumentError, "need a model file \"#{@model_suffix}\"."
   def validate_model(model, url) do
     validate_extname!(model)
-    unless File.exists?(model) do
-        #validate_extname!(url)
-        {:ok, _} = OnnxInterp.URL.download(url, Path.dirname(model), Path.basename(model))
+
+    abs_path = Path.expand(model)
+    unless File.exists?(abs_path) do
+      IO.puts("#{model}:")
+      {:ok, _} = OnnxInterp.URL.download(url, Path.dirname(abs_path), Path.basename(abs_path))
     end
     model
   end
 
   defp validate_extname!(model) do
-    actual = Path.extname(model)
-    unless actual == @model_suffix,
-      do: raise "error: #{@framework} expects the model file \"#{@model_suffix}\" not \"#{actual}\"."
-    :ok
+    actual_ext = Path.extname(model)
+    unless actual_ext == @model_suffix,
+      do: raise ArgumentError, "#{@framework} expects the model file \"#{@model_suffix}\" not \"#{actual_ext}\"."
+
+    actual_ext
   end
 
   @doc """
@@ -206,8 +224,8 @@ defmodule OnnxInterp do
     mod
   end
 
-  def set_input_tensor(%OnnxInterp{input: input}=session, index, bin, opts) do
-    %OnnxInterp{session | input: [input_tensor(index, bin, opts) | input]}
+  def set_input_tensor(%OnnxInterp{inputs: inputs}=session, index, bin, opts) do
+    %OnnxInterp{session | inputs: [input_tensor(index, bin, opts) | inputs]}
   end
 
   defp input_tensor(index, bin, opts) do
@@ -231,7 +249,9 @@ defmodule OnnxInterp do
     * mod   - modules' names or session.
     * index - index of output tensor in the model
   """
-  def get_output_tensor(mod, index) when is_atom(mod) do
+  def get_output_tensor(mod, index, opts \\ [])
+
+  def get_output_tensor(mod, index, _opts) when is_atom(mod) do
     cmd = 3
     case GenServer.call(mod, <<cmd::little-integer-32, index::little-integer-32>>, @timeout) do
       {:ok, result} -> result
@@ -239,8 +259,8 @@ defmodule OnnxInterp do
     end
   end
 
-  def get_output_tensor(%OnnxInterp{output: output}, index) do
-    Enum.at(output, index)
+  def get_output_tensor(%OnnxInterp{outputs: outputs}, index, _opts) do
+    Enum.at(outputs, index)
   end
 
   @doc """
@@ -273,14 +293,15 @@ defmodule OnnxInterp do
     mod
   end
 
-  def invoke(%OnnxInterp{module: mod, input: input}=session) do
+  def invoke(%OnnxInterp{module: mod, inputs: inputs}=session) do
     cmd   = 4
-    count = Enum.count(input)
-    data  = Enum.reduce(input, <<>>, fn x,acc -> acc <> x end)
+    count = Enum.count(inputs)
+    data  = Enum.reduce(inputs, <<>>, fn x,acc -> acc <> x end)
     case GenServer.call(mod, <<cmd::little-integer-32, count::little-integer-32>> <> data, @timeout) do
       {:ok, <<count::little-integer-32, results::binary>>} ->
           if count > 0 do
-              %OnnxInterp{session | output: for <<size::little-integer-32, tensor::binary-size(size) <- results>> do tensor end}
+              outputs = for <<size::little-integer-32, tensor::binary-size(size) <- results>> do tensor end
+              %OnnxInterp{session | outputs: outputs}
           else
               "error: %{count}"
           end

@@ -51,7 +51,7 @@ defmodule OnnxInterp.MixProject do
       #source_dir: File.cwd!,
 
       # Specify jobs parallel level.
-      build_parallel_level: 4,
+      build_parallel_level: 4
     ]
     ++ case :os.type do
       {:win32, :nt} -> cmake_win32()
