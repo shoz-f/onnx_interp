@@ -74,7 +74,7 @@ defmodule ImageClassify do
       |> Nx.from_binary(:f32) |> Nx.reshape({1000})
 
     # postprocess
-    Nx.exp(output0) |> then(fn exp -> Nx.divide(exp, Nx.sum(exp)) end) # softmax
+    then(Nx.exp(output0), fn exp -> Nx.divide(exp, Nx.sum(exp)) end) # softmax
     |> Nx.argsort(direction: :desc)
     |> Nx.slice([0], [top])
     |> Nx.to_flat_list()
