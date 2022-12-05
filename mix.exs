@@ -92,7 +92,16 @@ defmodule OnnxInterp.MixProject do
       extras: [
         "README.md",
 #        "LICENSE",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        
+        #Examples
+        "demo_candy/candy.livemd",
+        "demo_imgclass/image_classify.livemd",
+        "demo_nanodet/nanodet.livemd",
+        "demo_yolov4/YOLOv4.livemd"
+      ],
+      groups_for_extras: [
+        "Examples": Path.wildcard("demo_*/*.livemd")
       ],
 #      source_ref: "v#{@version}",
 #      source_url: @source_url,
