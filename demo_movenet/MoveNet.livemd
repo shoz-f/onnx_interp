@@ -16,6 +16,9 @@ Mix.install([
 
 ## 0.Original work
 
+* MoveNet: Ultra fast and accurate pose detection model<br>
+  https://www.tensorflow.org/hub/tutorials/movenet
+
 ***Thanks a lot!!!***
 
 ---
@@ -31,7 +34,7 @@ Mix.install([
   Resize the input image to the size {192,192}, 32bit integer to {0,255} and keep aspect ratio.
 
 * Post-processing<br>
-  Filtering Boxes(output[0]) and Scores(output[1]) .
+  output[0] - 17 keypoints (in the order of: [nose, left eye, right eye, left ear, right ear, left shoulder, right shoulder, left elbow, right elbow, left wrist, right wrist, left hip, right hip, left knee, right knee, left ankle, right ankle]). Make pairs of keypoints as "bone"
 
 ```elixir
 defmodule Movenet do
@@ -150,6 +153,8 @@ defmodule LiveMovenet do
 end
 ```
 
+## 3.Let's try it
+
 ```elixir
 img_list = LiveMovenet.img_list("girl-dancing", 1..200)
 ```
@@ -161,8 +166,6 @@ Kino.animate(img_list, fn img ->
 end)
 ```
 
-## 3.Let's try it
-
-## Appendix
+## 4.TIL ;-)
 
 &#9633;
