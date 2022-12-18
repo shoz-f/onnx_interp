@@ -24,7 +24,7 @@ defmodule DemoMovenet.MixProject do
     [
       {:onnx_interp, path: ".."},
       {:nx, "~> 0.4.0"},
-      {:cimg, path: "../../cimg_ex"},
+      {:cimg, "~> 0.1.16"},
       {:postdnn, "~> 0.1.4"},
       {:exprintf, "~> 0.2.1"}
     ]
