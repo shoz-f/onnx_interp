@@ -93,7 +93,7 @@ defmodule OnnxInterp.MixProject do
         "README.md",
 #        "LICENSE",
         "CHANGELOG.md",
-        
+
         #Examples
         "demo_candy/candy.livemd",
         "demo_imgclass/image_classify.livemd",

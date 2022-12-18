@@ -22,13 +22,13 @@ Mix.install([
 ## 1.Defining the inference module: MoveNet
 
 * Model<br>
-  yolov4_1_3_608_608_static.onnx
+  movenet_singlepose.onnx
 
 * Pre-processing<br>
-  Resize the input image to the size {608,608}, normalize to {0.0,1.0} and transpose NCHW.
+  Resize the input image to the size {192,192}, 32bit integer to {0,255} and keep aspect ratio.
 
 * Post-processing<br>
-  Filtering Boxes(output[0]) and Scores(output[1]) with Multi-class Non Maximum Suppression.
+  Filtering Boxes(output[0]) and Scores(output[1]) .
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -52,7 +52,7 @@ defmodule LiveMovenet do
       path = Path.join(src, name)
       CImg.load(path)
     end)
-    end
+  end
 
   def run(path) do
     CImg.load(path)
@@ -71,7 +71,7 @@ end
 ```
 
 ```elixir
-img_list = LiveMovenet.img_list("young-people-dancing", 1..200)
+img_list = LiveMovenet.img_list("girl-dancing", 1..200)
 ```
 
 ```elixir
