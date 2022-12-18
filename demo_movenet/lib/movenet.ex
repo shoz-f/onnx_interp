@@ -24,7 +24,10 @@ defmodule Movenet do
       |> Nx.from_binary(:f32) |> Nx.reshape({17, 3})
     
     # postprocess
-    {:ok, to_bones(output0, inv_aspect(img))}
+    {inv_w, inv_h} = inv_aspect(img)
+    joints = Nx.multiply(output0, Nx.tensor([inv_h, inv_w, 1.0]))
+
+    {:ok, to_bones(joints)}
   end
 
   @bones [
@@ -48,16 +51,12 @@ defmodule Movenet do
     {14, 16, :aqua   },
   ]
   
-  def to_bones(t, {scale_x, scale_y}, threshold \\ 0.11) do
+  def to_bones(t, threshold \\ 0.11) do
     Enum.flat_map(@bones, fn {p1, p2, color} ->
       [y1,x1,score1] = Nx.to_flat_list(t[p1])
       [y2,x2,score2] = Nx.to_flat_list(t[p2])
 
       if (score1 > threshold) && (score2 > threshold) do
-        x1 = x1*scale_x
-        y1 = y1*scale_y
-        x2 = x2*scale_x
-        y2 = y2*scale_y
         [{x1, y1, x2, y2, color}]
       else
         []
@@ -68,9 +67,5 @@ defmodule Movenet do
   defp inv_aspect(img) do
     {w, h, _, _} = CImg.shape(img)
     if w > h, do: {1.0, w/h}, else: {h/w, 1.0}
-  end
-
-  defp clip(x, lower, upper) do
-    x |> max(lower) |> min(upper)
   end
 end
