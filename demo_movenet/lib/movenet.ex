@@ -6,6 +6,7 @@ defmodule Movenet do
   alias OnnxInterp, as: NNInterp
   use NNInterp,
     model: "./model/movenet_singlepose.onnx",
+    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/movenet_singlepose.onnx",
     inputs: [i32: {1,@height,@width,3}],
     outputs: [f32: {1,1,17,3}]
 
