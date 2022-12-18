@@ -1,0 +1,88 @@
+# Pose Estimation: MoveNet
+
+```elixir
+File.cd!(__DIR__)
+# for windows JP
+System.shell("chcp 65001")
+
+Mix.install([
+  {:demo_movenet, path: "."},
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## 0.Original work
+
+***Thanks a lot!!!***
+
+---
+
+## Implementation with OnnxInterp in Elixir
+
+## 1.Defining the inference module: MoveNet
+
+* Model<br>
+  yolov4_1_3_608_608_static.onnx
+
+* Pre-processing<br>
+  Resize the input image to the size {608,608}, normalize to {0.0,1.0} and transpose NCHW.
+
+* Post-processing<br>
+  Filtering Boxes(output[0]) and Scores(output[1]) with Multi-class Non Maximum Suppression.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Launch `Movenet`.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Display the properties of the `Movenet` model.
+
+```elixir
+OnnxInterp.info(Movenet)
+```
+
+## 2.Defining execution module DemoMovenet
+
+```elixir
+defmodule LiveMovenet do
+  def img_list(src, range) do
+    Enum.map(range, fn i ->
+      name = ExPrintf.sprintf("%03d.jpg", [i])
+      path = Path.join(src, name)
+      CImg.load(path)
+    end)
+    end
+
+  def run(path) do
+    CImg.load(path)
+    |> draw_movenet()
+    |> CImg.display_kino(:jpeg)
+  end
+
+  def draw_movenet(img) do
+    with {:ok, res} <- Movenet.apply(img) do
+      Enum.reduce(res, CImg.builder(img), fn {x1, y1, x2, y2, color}, canvas ->
+        CImg.draw_line(canvas, x1, y1, x2, y2, color, thick: 5)
+      end)
+    end
+  end
+end
+```
+
+```elixir
+img_list = LiveMovenet.img_list("young-people-dancing", 1..200)
+```
+
+```elixir
+Kino.animate(img_list, fn img ->
+  LiveMovenet.draw_movenet(img)
+  |> CImg.display_kino(:jpeg)
+end)
+```
+
+## 3.Let's try it
+
+## Appendix
+
+&#9633;
