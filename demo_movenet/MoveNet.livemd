@@ -49,12 +49,13 @@ defmodule Movenet do
     inputs: [i32: {1, @height, @width, 3}],
     outputs: [f32: {1, 1, 17, 3}]
 
+  @prepro CImg.builder()
+          |> CImg.resize({@width, @height}, :ul, 0)
+          |> CImg.to_binary(dtype: "<i4")
+
   def apply(img) do
     # preprocess
-    input0 =
-      CImg.builder(img)
-      |> CImg.resize({@width, @height}, :ul, 0)
-      |> CImg.to_binary(dtype: "<i4")
+    input0 = CImg.run(@prepro, img)
 
     # prediction
     output0 =
@@ -137,13 +138,20 @@ defmodule LiveMovenet do
     end)
   end
 
+  def animate(img_list) do
+    Kino.animate(img_list, fn img ->
+      draw_movenet(img)
+      |> CImg.display_kino(:jpeg)
+    end)
+  end
+
   def run(path) do
     CImg.load(path)
     |> draw_movenet()
     |> CImg.display_kino(:jpeg)
   end
 
-  def draw_movenet(img) do
+  defp draw_movenet(img) do
     with {:ok, res} <- Movenet.apply(img) do
       Enum.reduce(res, CImg.builder(img), fn {x1, y1, x2, y2, color}, canvas ->
         CImg.draw_line(canvas, x1, y1, x2, y2, color, thick: 5)
@@ -160,10 +168,7 @@ img_list = LiveMovenet.img_list("girl-dancing", 1..200)
 ```
 
 ```elixir
-Kino.animate(img_list, fn img ->
-  LiveMovenet.draw_movenet(img)
-  |> CImg.display_kino(:jpeg)
-end)
+LiveMovenet.animate(img_list)
 ```
 
 ## 4.TIL ;-)
