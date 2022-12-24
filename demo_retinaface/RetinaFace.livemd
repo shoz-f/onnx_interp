@@ -7,34 +7,37 @@ System.shell("chcp 65001")
 
 Mix.install([
   {:onnx_interp, path: ".."},
-  {:cimg, github: "shoz-f/cimg_ex"},
+  {:cimg, "~> 0.1.16"},
   {:postdnn, "~> 0.1.4"},
   {:nx, "~> 0.4.0"},
-  {:kino, "~> 0.6.2"}
+  {:kino, "~> 0.7.0"}
 ])
 ```
 
 ## 0.Original work
 
 RetinaFace: Single-stage Dense Face Localisation in the Wild
-- https://arxiv.org/abs/1905.00641
+
+* https://arxiv.org/abs/1905.00641
 
 RetinaFace in PyTorch
-- https://github.com/biubug6/Pytorch_Retinaface
+
+* https://github.com/biubug6/Pytorch_Retinaface
 
 ***Thanks a lot!!!***
 
 ---
 
-
 ## 1.Implementation in Elixir
+
 > [model card]
-> - inputs:<br>
-> [0] f32:{1,3,640,640} - NCHW, RGB, r'=float(r-104), g'=float(g-117), b'=float(b-123)
-> - outputs:<br>
-> [0] f32:{1,16800,4} - <br>
-> [1] f32:{1,16800,2} - <br>
-> [2] f32:{1,16800,10} -
+> 
+> * inputs:<br>
+>   [0] f32:{1,3,640,640} - NCHW, RGB, r'=float(r-104), g'=float(g-117), b'=float(b-123)
+> * outputs:<br>
+>   [0] f32:{1,16800,4} - BBox(Cx,Cy,W,H) relative to the prior-box<br>
+>   [1] f32:{1,16800,2} - Scores of background and face<br>
+>   [2] f32:{1,16800,10} - Location of facial landmarks.
 
 ```elixir
 defmodule RetinaFace do
@@ -45,18 +48,21 @@ defmodule RetinaFace do
 
   use NNInterp,
     model: "./model/retinaface_resnet50.onnx",
-    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/retinaface_resnet50.onnx",
+    url:
+      "https://github.com/shoz-f/onnx_interp/releases/download/models/retinaface_resnet50.onnx",
     inputs: [f32: {1, 3, @height, @width}],
     outputs: [f32: {1, 16800, 4}, f32: {1, 16800, 2}, f32: {1, 16800, 10}]
 
   def apply(img) do
     # preprocess
-    input0 = CImg.builder(img)
+    input0 =
+      CImg.builder(img)
       |> CImg.resize({@width, @height}, :ul, 0)
       |> CImg.to_binary([{:gauss, {{104.0, 1.0}, {117.0, 1.0}, {123.0, 1.0}}}, :nchw])
 
     # prediction
-    outputs = session()
+    outputs =
+      session()
       |> NNInterp.set_input_tensor(0, input0)
       |> NNInterp.invoke()
 
@@ -70,8 +76,11 @@ defmodule RetinaFace do
     boxes = decode_boxes(loc)
 
     {:ok, res} =
-      NNInterp.non_max_suppression_multi_class(__MODULE__,
-        Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores),
+      NNInterp.non_max_suppression_multi_class(
+        __MODULE__,
+        Nx.shape(scores),
+        Nx.to_binary(boxes),
+        Nx.to_binary(scores),
         iou_threshold: 0.4,
         score_threshold: 0.2,
         boxrepr: :corner
@@ -80,8 +89,11 @@ defmodule RetinaFace do
     {:ok, fit2image_with_landmark(landm, res["0"], landm, inv_aspect(img))}
   end
 
-
-  @priorbox PostDNN.priorbox({@width, @height}, [{8, [16, 32]}, {16, [64, 128]}, {32, [256, 512]}], [:transpose, :normalize])
+  @priorbox PostDNN.priorbox(
+              {@width, @height},
+              [{8, [16, 32]}, {16, [64, 128]}, {32, [256, 512]}],
+              [:transpose, :normalize]
+            )
   @variance Nx.tensor([0.1, 0.1, 0.2, 0.2], type: :f32) |> Nx.reshape({4, 1})
 
   defp decode_scores(conf) do
@@ -133,7 +145,7 @@ defmodule RetinaFace do
         |> Nx.to_flat_list()
         |> Enum.chunk_every(2)
 
-      [score, x1*inv_x, y1*inv_y, x2*inv_x, y2*inv_y, landmark]
+      [score, x1 * inv_x, y1 * inv_y, x2 * inv_x, y2 * inv_y, landmark]
     end)
   end
 
@@ -159,7 +171,7 @@ defmodule DemoRetinaFace do
 
     with {:ok, res} = RetinaFace.apply(img) do
       res
-      |> draw_item(CImg.builder(img), {255, 0, 255})
+      |> draw_item(CImg.builder(img), {0, 255, 0})
       |> CImg.display_kino(:jpeg)
     end
   end
@@ -173,11 +185,13 @@ end
 ```
 
 ```elixir
-DemoRetinaFace.run("img2.jpg")
+DemoRetinaFace.run("10.jpg")
 ```
 
 ## 3.TIL ;-)
 
 ## Appendix
+
 ### A) How to get ONNX model
+
 &#9633;
