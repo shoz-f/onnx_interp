@@ -90,96 +90,81 @@ apply/1の出力は、次のリストを要素とするリスト。
 > - prioribox:
 > 格子間隔 8,16,32のグリッドそれぞれに 2個のアンカーボックス, サイズ@8[16,32],@16[64,128],@32[256,512]
 
-```elixir: retinaface
-defmodule RetinaFace do
-  @width 640
+```elixir: centerface
+defmodule CenterFace do
+  import Nx.Defn
+
+  @width  640
   @height 640
 
   alias OnnxInterp, as: NNInterp
-
   use NNInterp,
-    model: "./model/retinaface_resnet50.onnx",
-    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/retinaface_resnet50.onnx",
-    inputs: [f32: {1, 3, @height, @width}],
-    outputs: [f32: {1, 16800, 4}, f32: {1, 16800, 2}, f32: {1, 16800, 10}]
+    model: "./model/centerface_dynamic.onnx",
+    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/centerface_dynamic.onnx",
+    inputs: [f32: {1,3,@height,@width}],
+    outputs: [f32: {1,1,div(@height,4),div(@width,4)}, f32: {1,2,div(@height,4),div(@width,4)}, f32: {1,2,div(@height,4),div(@width,4)}, f32: {1,10,div(@height,4),div(@width,4)}]
 
   def apply(img) do
     # preprocess
-    input0 = CImg.builder(img)
+    bin = CImg.builder(img)
       |> CImg.resize({@width, @height}, :ul, 0)
-      |> CImg.to_binary([{:gauss, {{104.0, 1.0}, {117.0, 1.0}, {123.0, 1.0}}}, :nchw])
+      |> CImg.to_binary([{:range, {0.0, 255.0}}, :nchw])
 
     # prediction
     outputs = session()
-      |> NNInterp.set_input_tensor(0, input0)
+      |> NNInterp.set_input_tensor(0, bin)
       |> NNInterp.invoke()
 
-    [loc, conf, landm] =
-      Enum.with_index([4, 2, 10], fn dim, i ->
-        NNInterp.get_output_tensor(outputs, i) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, dim})
+    [heatmap, scale, offset, landm] = Enum.with_index([1, 2, 2, 10], fn dim,i ->
+        NNInterp.get_output_tensor(outputs, i) |> Nx.from_binary(:f32) |> Nx.reshape({dim, :auto})
       end)
 
     # postprocess
-    scores = decode_scores(conf)
-    boxes = decode_boxes(loc)
+    scores = Nx.transpose(heatmap)
+    boxes  = decode_boxes(offset, scale)
+    landm  = Nx.transpose(landm)
 
-    {:ok, res} =
-      NNInterp.non_max_suppression_multi_class(__MODULE__,
+    {:ok, res} = NNInterp.non_max_suppression_multi_class(__MODULE__,
         Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores),
-        iou_threshold: 0.4,
-        score_threshold: 0.2,
-        boxrepr: :corner
-      )
+        iou_threshold: 0.2, score_threshold: 0.2,
+        boxrepr: :corner)
 
-    {:ok, fit2image_with_landmark(landm, res["0"], landm, inv_aspect(img))}
+    {:ok, fit2image_with_landmark(landm, res["0"], inv_aspect(img))}
   end
 
 
-  @priorbox PostDNN.priorbox({@width, @height}, [{8, [16, 32]}, {16, [64, 128]}, {32, [256, 512]}], [:transpose, :normalize])
-  @variance Nx.tensor([0.1, 0.1, 0.2, 0.2], type: :f32) |> Nx.reshape({4, 1})
+  @grid PostDNN.meshgrid({@width, @height}, [4], [:center, :normalize, :transpose])
 
-  defp decode_scores(conf) do
-    Nx.slice_along_axis(conf, 1, 1, axis: 1)
-  end
-
-  defp decode_boxes(loc) do
-    loc = Nx.transpose(loc)
-
+  defp decode_boxes(offset, size) do
     # decode box center coordinate on {1.0, 1.0}
-    center = loc[0..1]
-      |> Nx.multiply(@variance[0..1])
-      # * prior_size(x,y)
-      |> Nx.multiply(@priorbox[2..3])
-      # + grid(x,y)
-      |> Nx.add(@priorbox[0..1])
+    center = offset
+      |> Nx.reverse(axes: [0])     # swap (y,x) -> (x,y)
+      |> Nx.multiply(@grid[2..3]) # * grid_pitch(x,y)
+      |> Nx.add(@grid[0..1])      # + grid(x,y)
 
     # decode box half size
-    half_size = loc[2..3]
-      |> Nx.multiply(@variance[2..3])
+    half_size = size
+      |> Nx.reverse(axes: [0])     # swap (y,x) -> (x,y)
       |> Nx.exp()
-      # * prior_size(x,y)
-      |> Nx.multiply(@priorbox[2..3])
+      |> Nx.multiply(@grid[2..3]) # * grid_pitch(x,y)
       |> Nx.divide(2.0)
 
     # decode boxes
     [Nx.subtract(center, half_size), Nx.add(center, half_size)]
-    |> Nx.concatenate()
-    |> PostDNN.clamp({0.0, 1.0})
-    |> Nx.transpose()
+      |> Nx.concatenate()
+      |> PostDNN.clamp({0.0, 1.0})
+      |> Nx.transpose()
   end
 
-  defp fit2image_with_landmark(landm, nms_res, landm, {inv_x, inv_y} \\ {1.0, 1.0}) do
+  defp fit2image_with_landmark(landm, nms_res, {inv_x, inv_y} \\ {1.0, 1.0}) do
     Enum.map(nms_res, fn [score, x1, y1, x2, y2, index] ->
-      priorbox = Nx.slice_along_axis(@priorbox, index, 1, axis: 1) |> Nx.squeeze()
-      variance = Nx.squeeze(@variance[0..1])
+      grid = Nx.slice_along_axis(@grid, index, 1, axis: 1) |> Nx.squeeze()
 
       landmark = landm[index]
         |> Nx.reshape({:auto, 2})
-        |> Nx.multiply(variance)
-        # * prior_size(x,y)
-        |> Nx.multiply(priorbox[2..3])
-        # + grid(x,y)
-        |> Nx.add(priorbox[0..1])
+        |> Nx.reverse(axes: [0])
+        |> Nx.multiply(grid[2..3]) # * prior_size(x,y)
+        |> Nx.add(grid[0..1])      # + grid(x,y)
         |> Nx.multiply(Nx.tensor([inv_x, inv_y]))
         |> Nx.to_flat_list()
         |> Enum.chunk_every(2)
@@ -201,12 +186,12 @@ end
 
 [*1]CImgに draw_makerのような機能追加するまでお預け。
 
-```elixir: demo_retinaface
-defmodule DemoRetinaFace do
+```elixir: demo_centerface
+defmodule DemoCenterFace do
   def run(path) do
     img = CImg.load(path)
 
-    with {:ok, res} = RetinaFace.apply(img) do
+    with {:ok, res} = CenterFace.apply(img) do
       res
       |> draw_item(CImg.builder(img), {0, 255, 0})
       |> CImg.display_kino(:jpeg)
@@ -223,16 +208,16 @@ end
 
 # 4.デモンストレーション
 
-`RetinaFace`を起動する。
+`CenterFace`を起動する。
 
 ```elixir
-RetinaFace.start_link([])
+CenterFace.start_link([])
 ```
 
 画像を与え、顔検出を行う。
 
 ```elixir
-DemoRetinaFace.run(10.jpg)
+DemoCenterFace.run("10.jpg")
 ```
 
 ![image.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/14158/02990743-34ef-67a2-1d78-abb2602dcbbc.png)
