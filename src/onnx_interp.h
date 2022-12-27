@@ -14,6 +14,7 @@
 
 /*--- INCLUDE ---*/
 #include "tiny_ml.h"
+#include "tensor_spec.h"
 #include <onnxruntime_cxx_api.h>
 
 /*--- CONSTANT ---*/
@@ -63,6 +64,9 @@ private:
 
     char** mOutputNames{nullptr};
     std::vector<Ort::Value> mOutput;
+    
+    std::vector<TensorSpec*> mISpec;
+    std::vector<TensorSpec*> mOSpec;
 };
 
 /*INLINE METHOD:

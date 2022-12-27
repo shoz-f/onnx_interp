@@ -11,7 +11,6 @@
 /**************************************************************************{{{*/
 
 #include <stdio.h>
-#include "tensor_spec.h"
 #include "onnx_interp.h"
 
 /***  Module Header  ******************************************************}}}*/
@@ -118,7 +117,7 @@ std::string& otempl)
     mSession = Ort::Session(mEnv, onnx_model.c_str(), session_options);
 #endif
 
-    TensorSpec ispec(itempl, false);
+    mISpec = parse_tensor_spec(itempl, false);
 
     mInputCount = mSession.GetInputCount();
     mInputNames = new char*[mInputCount];
@@ -133,9 +132,12 @@ std::string& otempl)
         size_t shape_len = tensor_info.GetDimensionsCount();
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
+
+        TensorSpec *spec = mISpec[i];
+
         for (size_t j = 0; j < shape_len; j++) {
             if (shape[j] == -1) {
-                shape[j] = (ispec.mDType != TensorSpec::DTYPE_NONE) ? ispec.mShape[j] : 1;
+                shape[j] = (spec->mDType != TensorSpec::DTYPE_NONE) ? spec->mShape[j] : 1;
             }
         }
 
@@ -191,6 +193,11 @@ OnnxInterp::~OnnxInterp()
         _ort_alloc.Free(mOutputNames[i]);
     }
     delete [] mOutputNames;
+
+    for (size_t i = 0; i < mInputCount; i++) {
+        delete mISpec[i];
+    }
+    mISpec.clear();
 }
 
 /***  Module Header  ******************************************************}}}*/
@@ -269,6 +276,24 @@ OnnxInterp::info(json& res)
 
         res["outputs"].push_back(onnx_tensor);
     }
+    
+    for (size_t index = 0; index < mInputCount; index++) {
+        json onnx_spec;
+        TensorSpec *spec = mISpec[index];
+
+        onnx_spec["index"] = index;
+        onnx_spec["type" ] = _dtype[spec->mDType];
+        for (const auto& n : spec->mShape) {
+            if (n == -1) {
+                onnx_spec["dims"].push_back("none");
+            }
+            else {
+                onnx_spec["dims"].push_back(n);
+            }
+        }
+
+        res["ispec"].push_back(onnx_spec);
+    }
 }
 
 /***  Module Header  ******************************************************}}}*/
@@ -327,6 +352,7 @@ bool
 OnnxInterp::invoke()
 {
     mOutput = mSession.Run(Ort::RunOptions{nullptr}, mInputNames, mInput.data(), mInputCount, mOutputNames, mOutputCount);
+
     return true;
 }
 

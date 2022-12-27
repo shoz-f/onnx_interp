@@ -98,7 +98,8 @@ defmodule OnnxInterp.MixProject do
         "demo_candy/candy.livemd",
         "demo_imgclass/image_classify.livemd",
         "demo_nanodet/nanodet.livemd",
-        "demo_yolov4/YOLOv4.livemd"
+        "demo_yolov4/YOLOv4.livemd",
+        "demo_retinaface/RetinaFace.livemd"
       ],
       groups_for_extras: [
         "Examples": Path.wildcard("demo_*/*.livemd")
