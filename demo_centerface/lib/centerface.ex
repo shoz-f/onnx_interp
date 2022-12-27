@@ -7,6 +7,7 @@ defmodule CenterFace do
   alias OnnxInterp, as: NNInterp
   use NNInterp,
     model: "./model/centerface_dynamic.onnx",
+    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/centerface_dynamic.onnx",
     inputs: [f32: {1,3,@height,@width}],
     outputs: [f32: {1,1,div(@height,4),div(@width,4)}, f32: {1,2,div(@height,4),div(@width,4)}, f32: {1,2,div(@height,4),div(@width,4)}, f32: {1,10,div(@height,4),div(@width,4)}]
 
@@ -28,6 +29,7 @@ defmodule CenterFace do
     # postprocess
     scores = Nx.transpose(heatmap)
     boxes  = decode_boxes(offset, scale)
+    landm  = Nx.transpose(landm)
 
     {:ok, res} = NNInterp.non_max_suppression_multi_class(__MODULE__,
         Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores),
@@ -63,17 +65,18 @@ defmodule CenterFace do
 
   defp fit2image_with_landmark(landm, nms_res, {inv_x, inv_y} \\ {1.0, 1.0}) do
     Enum.map(nms_res, fn [score, x1, y1, x2, y2, index] ->
-#      priorbox = Nx.slice_along_axis(@grid, index, 1, axis: 1) |> Nx.squeeze()
-#
-#      landmark = landm[index]
-#        |> Nx.reshape({:auto, 2})
-#        |> Nx.multiply(priorbox[2..3]) # * prior_size(x,y)
-#        |> Nx.add(priorbox[0..1])      # + grid(x,y)
-#        |> Nx.multiply(Nx.tensor([inv_x, inv_y]))
-#        |> Nx.to_flat_list()
-#        |> Enum.chunk_every(2)
-#
-      [score, x1*inv_x, y1*inv_y, x2*inv_x, y2*inv_y, index]
+      grid = Nx.slice_along_axis(@grid, index, 1, axis: 1) |> Nx.squeeze()
+
+      landmark = landm[index]
+        |> Nx.reshape({:auto, 2})
+        |> Nx.reverse(axes: [0])
+        |> Nx.multiply(grid[2..3]) # * prior_size(x,y)
+        |> Nx.add(grid[0..1])      # + grid(x,y)
+        |> Nx.multiply(Nx.tensor([inv_x, inv_y]))
+        |> Nx.to_flat_list()
+        |> Enum.chunk_every(2)
+
+      [score, x1*inv_x, y1*inv_y, x2*inv_x, y2*inv_y, landmark]
     end)
   end
 
