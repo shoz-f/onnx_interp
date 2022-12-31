@@ -33,7 +33,7 @@ defmodule CenterFace do
 
     {:ok, res} = NNInterp.non_max_suppression_multi_class(__MODULE__,
         Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores),
-        iou_threshold: 0.2, score_threshold: 0.2,
+        iou_threshold: 0.2, score_threshold: 0.3,
         boxrepr: :corner)
 
     {:ok, fit2image_with_landmark(landm, res["0"], inv_aspect(img))}

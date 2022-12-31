@@ -1,4 +1,4 @@
-# 顔検出 YuNet(OnnxInterp編)
+# 顔検出 UltraFace(OnnxInterp編)
 
 ```elixir
 File.cd!(__DIR__)
@@ -6,7 +6,7 @@ File.cd!(__DIR__)
 System.shell("chcp 65001")
 
 Mix.install([
-  {:yunet, path: "."},
+  {:ultra_face, path: "."},
   {:kino, "~> 0.6.2"}
 ])
 ```

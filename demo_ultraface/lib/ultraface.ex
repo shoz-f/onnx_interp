@@ -8,9 +8,6 @@ defmodule UltraFace do
     inputs: [f32: {1,3,@height,@width}],
     outputs: [f32: {1,4420,2}, f32: {1,4420,4}]
 
-  @width  320
-  @height 240
-
   def apply(img) do
     # preprocess
     input0 = img
@@ -21,25 +18,21 @@ defmodule UltraFace do
     outputs = __MODULE__
       |> NNInterp.set_input_tensor(0, input0)
       |> NNInterp.invoke()
-      
-      
+
     conf = NNInterp.get_output_tensor(outputs, 0) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 2})
     loc  = NNInterp.get_output_tensor(outputs, 1) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 4})
 
-#    loc  = NNInterp.get_output_tensor(outputs, 0) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 14})
-#    conf = NNInterp.get_output_tensor(outputs, 1) |> Nx.from_binary(:f32) |> Nx.reshape({:auto,  2})
-#    iou  = NNInterp.get_output_tensor(outputs, 2) |> Nx.from_binary(:f32) |> Nx.reshape({:auto,  1})
-#
-#    # postprocess
+    # postprocess
     scores = decode_scores(conf)
     boxes  = decode_boxes(loc)
 
-    NNInterp.non_max_suppression_multi_class(__MODULE__,
+    {:ok, res} = NNInterp.non_max_suppression_multi_class(__MODULE__,
       Nx.shape(scores), Nx.to_binary(boxes), Nx.to_binary(scores),
-      iou_threshold: 0.3, score_threshold: 0.7,
+      iou_threshold: 0.2, score_threshold: 0.6,
       boxrepr: :corner
     )
-#    |> PostDNN.adjust2letterbox(CImg.Util.aspect(img))
+
+    {:ok, res["0"]}
   end
 
 
@@ -67,16 +60,6 @@ defmodule UltraFace do
       |> Nx.concatenate()
       |> PostDNN.clamp({0.0, 1.0})
       |> Nx.transpose()
-
-    # decode landmarks
-#    landmarks = Enum.map([4,6,8,10,12], fn i ->
-#        loc[i..i+1]
-#        |> Nx.multiply(@variance[0..1])
-#        |> Nx.multiply(@priorbox[2..3])
-#        |> Nx.add(@priorbox[0..1])
-#      end)
-#      |> Nx.concatenate()
-#      |> Nx.transpose()
 
     boxes
   end

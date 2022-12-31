@@ -105,7 +105,7 @@ Ort::Value& value)
 OnnxInterp::OnnxInterp(
 std::string onnx_model,
 std::string& itempl,
-std::string& otempl)
+std::string&)
 {
     Ort::AllocatorWithDefaultOptions _ort_alloc;
     Ort::SessionOptions session_options;
@@ -133,11 +133,14 @@ std::string& otempl)
         int64_t* shape = new int64_t[shape_len];
         tensor_info.GetDimensions(shape, shape_len);
 
-        TensorSpec *spec = mISpec[i];
-
         for (size_t j = 0; j < shape_len; j++) {
             if (shape[j] == -1) {
-                shape[j] = (spec->mDType != TensorSpec::DTYPE_NONE) ? spec->mShape[j] : 1;
+                if (i < mISpec.size() && mISpec[i]->mDType != TensorSpec::DTYPE_NONE) {
+                    shape[j] = mISpec[i]->mShape[j];
+                }
+                else {
+                    shape[j] = 1;
+                }
             }
         }
 
@@ -146,30 +149,10 @@ std::string& otempl)
         delete [] shape;
     }
 
-    TensorSpec ospec(otempl, false);
-
     mOutputCount = mSession.GetOutputCount();
     mOutputNames = new char*[mOutputCount];
     for (size_t i = 0; i < mOutputCount; i++) {
         mOutputNames[i] = mSession.GetOutputName(i, _ort_alloc);
-
-        Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(i);
-        auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-
-        ONNXTensorElementDataType type = tensor_info.GetElementType();
-
-        size_t shape_len = tensor_info.GetDimensionsCount();
-        int64_t* shape = new int64_t[shape_len];
-        tensor_info.GetDimensions(shape, shape_len);
-        for (size_t j = 0; j < shape_len; j++) {
-            if (shape[j] == -1) {
-                shape[j] = (ospec.mDType != TensorSpec::DTYPE_NONE) ? ospec.mShape[j] : 1;
-            }
-        }
-
-        mOutput.push_back(Ort::Value::CreateTensor(_ort_alloc, shape, shape_len, type));
-
-        delete [] shape;
     }
 }
 
@@ -194,10 +177,15 @@ OnnxInterp::~OnnxInterp()
     }
     delete [] mOutputNames;
 
-    for (size_t i = 0; i < mInputCount; i++) {
+    for (size_t i = 0; i < mISpec.size(); i++) {
         delete mISpec[i];
     }
     mISpec.clear();
+
+    for (size_t i = 0; i < mOSpec.size(); i++) {
+        delete mOSpec[i];
+    }
+    mOSpec.clear();
 }
 
 /***  Module Header  ******************************************************}}}*/
@@ -275,24 +263,6 @@ OnnxInterp::info(json& res)
         }
 
         res["outputs"].push_back(onnx_tensor);
-    }
-    
-    for (size_t index = 0; index < mInputCount; index++) {
-        json onnx_spec;
-        TensorSpec *spec = mISpec[index];
-
-        onnx_spec["index"] = index;
-        onnx_spec["type" ] = _dtype[spec->mDType];
-        for (const auto& n : spec->mShape) {
-            if (n == -1) {
-                onnx_spec["dims"].push_back("none");
-            }
-            else {
-                onnx_spec["dims"].push_back(n);
-            }
-        }
-
-        res["ispec"].push_back(onnx_spec);
     }
 }
 
