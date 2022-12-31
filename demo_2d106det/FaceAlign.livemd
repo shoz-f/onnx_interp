@@ -1,0 +1,49 @@
+# 顔検出 YuNet(OnnxInterp編)
+
+```elixir
+File.cd!(__DIR__)
+# for windows JP
+System.shell("chcp 65001")
+
+Mix.install([
+  {:yunet, path: "."},
+  {:kino, "~> 0.6.2"}
+])
+```
+
+## 1.Implementation with OnnxInterp in Elixir
+
+```elixir
+defmodule LiveYuNet do
+  def run() do
+    img = CImg.load("data/10_People_Marching_People_Marching_2_668.jpg")
+
+    with {:ok, res} = YuNet.apply(img) do
+      res["0"]
+      |> Enum.take(30)
+      |> draw_item(CImg.builder(img), {255, 255, 0})
+      |> CImg.display_kino(:jpeg)
+    end
+  end
+
+  defp draw_item(boxes, canvas, color \\ {255, 255, 255}) do
+    Enum.reduce(boxes, canvas, fn [_score, x1, y1, x2, y2, _index], canvas ->
+      [x1, y1, x2, y2] = PostDNN.bounds([x1, y1, x2, y2], {0.0, 1.0})
+
+      CImg.fill_rect(canvas, x1, y1, x2, y2, color, 0.3)
+    end)
+  end
+end
+```
+
+## 2.Let's try it
+
+```elixir
+LiveYuNet.run()
+```
+
+## 3.TIL ;-)
+
+## Appendix
+
+&#9633;
