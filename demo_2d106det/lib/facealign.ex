@@ -5,6 +5,7 @@ defmodule FaceAlign do
   alias OnnxInterp, as: NNInterp
   use NNInterp,
     model: "model/2d106det.onnx",
+    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/2d106det.onnx",
     inputs: [f32: {1,3,@height,@width}],
     outputs: [f32: {1,212}]
 

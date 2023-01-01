@@ -23,7 +23,7 @@ defmodule DemoFaceAlign.MixProject do
   defp deps do
     [
       {:onnx_interp, path: ".."},
-      {:cimg, path: "../../cimg_ex"},
+      {:cimg, "~> 0.1.17"},
       {:nx, "~> 0.4.0"}
     ]
   end
