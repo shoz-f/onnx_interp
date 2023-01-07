@@ -7,13 +7,16 @@ System.shell("chcp 65001")
 
 Mix.install([
   {:onnx_interp, path: ".."},
-  {:cimg, path: "../../cimg_ex"},
+  {:cimg, "~> 0.1.17"},
   {:nx, "~> 0.4.1"},
   {:kino, "~> 0.8.0"}
 ])
 ```
 
 ## 0.Original work
+
+* InsightFace: Face Alignment<br>
+  https://github.com/deepinsight/insightface/tree/master/alignment/coordinate_reg
 
 ## 1.Implementation with OnnxInterp in Elixir
 
@@ -72,18 +75,16 @@ defmodule DemoFaceAlign do
     img = CImg.load(path)
 
     [
-      CImg.display_kino(img, :jpeg),
+      img,
       with {:ok, res} = FaceAlign.apply(img) do
-        res
-        |> draw_item(CImg.builder(img), {0, 255, 0})
-        |> CImg.display_kino(:jpeg)
+        draw_item(res, CImg.builder(img), :red)
       end
     ]
   end
 
-  defp draw_item(landmark, canvas, color \\ {255, 255, 255}) do
+  defp draw_item(landmark, canvas, color) do
     Enum.reduce(landmark, canvas, fn [x, y], canvas ->
-      CImg.draw_marker(canvas, x, y, :red)
+      CImg.draw_marker(canvas, x, y, color, size: 2)
     end)
   end
 end
@@ -91,6 +92,7 @@ end
 
 ```elixir
 DemoFaceAlign.run("face.jpg")
+|> Enum.map(&CImg.display_kino(&1, :jpeg))
 |> Kino.Layout.grid(columns: 2)
 ```
 
