@@ -23,7 +23,7 @@ defmodule Demo.MixProject do
   defp deps do
     [
       {:onnx_interp, path: ".."},
-      {:cimg, "~> 0.1.17"},
+      {:cimg, "~> 0.1.18"},
       {:nx, "~> 0.4.0"}
     ]
   end

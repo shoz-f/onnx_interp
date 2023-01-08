@@ -2,12 +2,11 @@ defmodule DemoYOLOP do
   def run(path) do
     img = CImg.load(path)
 
-    with {:ok, bbox, mask} = YOLOP.apply(img) do
-      mask = CImg.color_mapping(mask, [{0,0,0},{255,0,128},{255,0,0}])
-
+    with {:ok, cars, drive_area, lane_line} = YOLOP.apply(img) do
       CImg.builder(img)
-      |> CImg.blend(mask, 0.3)
-      |> draw_item(bbox, {0,192,0})
+      |> CImg.paint_mask(drive_area, {255,255,0})
+      |> CImg.paint_mask(lane_line,  {255,0,0})
+      |> draw_item(cars, {0,192,0})
       |> CImg.save("result.jpg")
     end
   end

@@ -5,7 +5,7 @@ defmodule YOLOP do
   alias OnnxInterp, as: NNInterp
   use OnnxInterp,
     model: "model/yolop-640-640.onnx",
-    url: "https://github.com/hustvl/YOLOP/blob/main/weights/yolop-640-640.onnx",
+    url: "https://github.com/hustvl/YOLOP/raw/main/weights/yolop-640-640.onnx",
     inputs: [f32: {1,3,@height,@width}],
     outputs: [f32: {1,25200,6}, f32: {1,2,@height,@width}, f32: {1,2,@height,@width}]
 
@@ -20,18 +20,17 @@ defmodule YOLOP do
       |> OnnxInterp.set_input_tensor(0, input0)
       |> OnnxInterp.invoke()
 
-    det_out = OnnxInterp.get_output_tensor(outputs, 0) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 6})
-
-    [drive_area_seg, lane_line_seg] = Enum.map(1..2, fn index ->
-      OnnxInterp.get_output_tensor(outputs, index) |> Nx.from_binary(:f32) |> Nx.reshape({2, :auto})
-    end)
+    det_out        = OnnxInterp.get_output_tensor(outputs, 0) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 6})
+    drive_area_seg = OnnxInterp.get_output_tensor(outputs, 1) |> Nx.from_binary(:f32) |> Nx.reshape({2, :auto})
+    lane_line_seg  = OnnxInterp.get_output_tensor(outputs, 2) |> Nx.from_binary(:f32) |> Nx.reshape({2, :auto})
 
     # postprocess
     img_size = CImg.shape(img) |> then(fn {w,h,_,_} -> {w,h} end)
     {
       :ok,
       decode_bbox(det_out, img_size),
-      decode_segments(drive_area_seg, lane_line_seg, img_size)
+      decode_segments(drive_area_seg, img_size),
+      decode_segments(lane_line_seg, img_size)
     }
   end
 
@@ -51,14 +50,10 @@ defmodule YOLOP do
     end)
   end
 
-  defp decode_segments(area, line, img_size) do
-    [area, line] = Enum.map([area, line], fn t ->
-      Nx.greater(t[1], t[0])
-    end)
-
-    segments = Nx.max(area, Nx.multiply(line, 2))
-      |> Nx.to_binary()
-      |> CImg.from_binary(640, 640, 1, 1, dtype: "<u1")
-      |> CImg.resize(img_size)
+  defp decode_segments(t, img_size) do
+    Nx.greater(t[1], t[0])
+    |> Nx.to_binary()
+    |> CImg.from_binary(640, 640, 1, 1, dtype: "<u1")
+    |> CImg.resize(img_size)
   end
 end
