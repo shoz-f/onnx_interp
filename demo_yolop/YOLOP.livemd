@@ -7,7 +7,7 @@ System.shell("chcp 65001")
 
 Mix.install([
   {:onnx_interp, path: ".."},
-  {:cimg, "~> 0.1.17"},
+  {:cimg, "~> 0.1.18"},
   {:nx, "~> 0.4.1"},
   {:kino, "~> 0.8.0"}
 ])
@@ -49,12 +49,11 @@ defmodule YOLOP do
     det_out =
       OnnxInterp.get_output_tensor(outputs, 0) |> Nx.from_binary(:f32) |> Nx.reshape({:auto, 6})
 
-    [drive_area_seg, lane_line_seg] =
-      Enum.map(1..2, fn index ->
-        OnnxInterp.get_output_tensor(outputs, index)
-        |> Nx.from_binary(:f32)
-        |> Nx.reshape({2, :auto})
-      end)
+    drive_area_seg =
+      OnnxInterp.get_output_tensor(outputs, 1) |> Nx.from_binary(:f32) |> Nx.reshape({2, :auto})
+
+    lane_line_seg =
+      OnnxInterp.get_output_tensor(outputs, 2) |> Nx.from_binary(:f32) |> Nx.reshape({2, :auto})
 
     # postprocess
     img_size = CImg.shape(img) |> then(fn {w, h, _, _} -> {w, h} end)
@@ -62,7 +61,8 @@ defmodule YOLOP do
     {
       :ok,
       decode_bbox(det_out, img_size),
-      decode_segments(drive_area_seg, lane_line_seg, img_size)
+      decode_segments(drive_area_seg, img_size),
+      decode_segments(lane_line_seg, img_size)
     }
   end
 
@@ -90,17 +90,11 @@ defmodule YOLOP do
     end)
   end
 
-  defp decode_segments(area, line, img_size) do
-    [area, line] =
-      Enum.map([area, line], fn t ->
-        Nx.greater(t[1], t[0])
-      end)
-
-    segments =
-      Nx.max(area, Nx.multiply(line, 2))
-      |> Nx.to_binary()
-      |> CImg.from_binary(640, 640, 1, 1, dtype: "<u1")
-      |> CImg.resize(img_size)
+  defp decode_segments(t, img_size) do
+    Nx.greater(t[1], t[0])
+    |> Nx.to_binary()
+    |> CImg.from_binary(640, 640, 1, 1, dtype: "<u1")
+    |> CImg.resize(img_size)
   end
 end
 ```
@@ -118,12 +112,11 @@ defmodule DemoYOLOP do
   def run(path) do
     img = CImg.load(path)
 
-    with {:ok, bbox, mask} = YOLOP.apply(img) do
-      mask = CImg.color_mapping(mask, [{0, 0, 0}, {255, 0, 128}, {255, 0, 0}])
-
+    with {:ok, cars, drive_area, lane_line} = YOLOP.apply(img) do
       CImg.builder(img)
-      |> CImg.blend(mask, 0.3)
-      |> draw_item(bbox, {0, 192, 0})
+      |> CImg.paint_mask(drive_area, {255, 255, 0})
+      |> CImg.paint_mask(lane_line, {255, 0, 0})
+      |> draw_item(cars, {0, 192, 0})
       |> CImg.display_kino(:jpeg)
     end
   end
