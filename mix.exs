@@ -4,7 +4,7 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.9",
+      version: "0.1.10",
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       compilers: [:cmake] ++ Mix.compilers(),
@@ -33,7 +33,8 @@ defmodule OnnxInterp.MixProject do
   defp deps do
     [
       {:poison, "~> 5.0"},
-      {:castore, "~> 0.1.19"},
+      {:castore, "== 0.1.20"},
+      {:progress_bar, "~> 2.0"},
       {:mix_cmake, "~> 0.1.3"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
@@ -99,7 +100,16 @@ defmodule OnnxInterp.MixProject do
         "demo_imgclass/image_classify.livemd",
         "demo_nanodet/nanodet.livemd",
         "demo_yolov4/YOLOv4.livemd",
-        "demo_retinaface/RetinaFace.livemd"
+        "demo_retinaface/RetinaFace.livemd",
+        "demo_2d106det/FaceAlign.livemd",
+        "demo_centerface/CenterFace.livemd",
+        "demo_mbert_qa/mbert_qa.livemd",
+        "demo_movenet/MoveNet.livemd",
+        "demo_ultraface/UltraFace.livemd",
+        "demo_yolop/YOLOP.livemd",
+        "demo_yolov4/YOLOv4.livemd",
+        "demo_yolov8/YOLOv8.livemd",
+        "demo_yunet/YuNet.livemd",
       ],
       groups_for_extras: [
         "Examples": Path.wildcard("demo_*/*.livemd")

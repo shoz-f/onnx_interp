@@ -1,5 +1,11 @@
 # Changelog
 
+## Release 0.1.10(Jan 15 2023)
+
+  * Major Features and Improvements
+    * show progress bar while a model file is downloading.
+    * added examples.
+
 ## Release 0.1.9(Dec 5 2022)
 
   * Major Features and Improvements

@@ -1,4 +1,4 @@
-# Face Detection: CenterFace (powerd by OnnxInterp)
+# Face Detection: CenterFace
 
 ```elixir
 File.cd!(__DIR__)

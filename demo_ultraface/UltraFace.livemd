@@ -1,4 +1,4 @@
-# 顔検出 UltraFace(OnnxInterp編)
+# Face Detection: UltraFace
 
 ```elixir
 File.cd!(__DIR__)

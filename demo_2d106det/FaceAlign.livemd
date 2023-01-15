@@ -1,4 +1,4 @@
-# 顔検出 2D106det(OnnxInterp編)
+# Face Alignment: 2D106det
 
 ```elixir
 File.cd!(__DIR__)

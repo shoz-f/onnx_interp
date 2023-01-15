@@ -1,4 +1,4 @@
-# Face Detection: LetinaFace (powerd by OnnxInterp)
+# Face Detection: LetinaFace
 
 ```elixir
 File.cd!(__DIR__)
