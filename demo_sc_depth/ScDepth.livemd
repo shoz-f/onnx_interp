@@ -1,0 +1,131 @@
+# Monocular Depth Estimation: SC-DepthV3
+
+```elixir
+File.cd!(__DIR__)
+# for windows JP
+# System.shell("chcp 65001")
+
+Mix.install([
+  {:onnx_interp, "~> 0.1.8"},
+  {:nx, "~> 0.4.2"},
+  {:cimg, "~> 0.1.18"},
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## 0.Original work
+
+SC-DepthV3: Robust Self-supervised Monocular Depth Estimation for Dynamic Scenes
+
+* https://arxiv.org/abs/2211.03660
+
+GitHub: SC_Depth
+
+* https://github.com/JiawangBian/sc_depth_pl
+
+This note usee the pretraind model converted from above project ;-)
+
+***Thanks a lot!!!***
+
+---
+
+## Implementation with OnnxInterp in Elixir
+
+## 1.Defining the inference module: ScDepth
+
+* Model<br>
+  yolov4_1_3_608_608_static.onnx
+
+* Pre-processing<br>
+  Resize the input image to the size {640,384}, gauss {{114.75,57.375},{114.75,57.375},{114.75,57.375}}} and transpose NCHW.
+
+* Post-processing<br>
+  normalize depth map and color-mapping.
+
+```elixir
+defmodule ScDepth do
+  @width 640
+  @height 384
+
+  alias OnnxInterp, as: NNInterp
+
+  use NNInterp,
+    model: "model/sc_depth.onnx",
+    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/sc_depth.onnx",
+    inputs: [f32: {1, 3, @height, @width}],
+    outputs: [f32: {1, 3, @height, @width}]
+
+  def apply(img) do
+    # preprocess
+    input0 =
+      CImg.builder(img)
+      |> CImg.resize({@width, @height})
+      |> CImg.to_binary([{:gauss, {{114.75, 57.375}, {114.75, 57.375}, {114.75, 57.375}}}, :nchw])
+
+    # prediction
+    output0 =
+      session()
+      |> NNInterp.set_input_tensor(0, input0)
+      |> NNInterp.invoke()
+      |> NNInterp.get_output_tensor(0)
+
+    # postprocess
+    {w, h, _, _} = CImg.shape(img)
+
+    output0
+    |> CImg.from_binary(@width, @height, 1, 1, range: min_max(output0), dtype: "<f4")
+    |> CImg.resize({w, h})
+  end
+
+  defp min_max(bin) do
+    t = Nx.from_binary(bin, :f32)
+
+    {
+      Nx.reduce_min(t) |> Nx.to_number(),
+      Nx.reduce_max(t) |> Nx.to_number()
+    }
+  end
+end
+```
+
+Launch `ScDepth`.
+
+```elixir
+# OnnxInterp.stop(Resnet18)
+ScDepth.start_link([])
+```
+
+Display the properties of the `ScDepth` model.
+
+```elixir
+OnnxInterp.info(ScDepth)
+```
+
+## 2.Defining execution module ScDepth
+
+```elixir
+defmodule LiveScDepth do
+  def run(path) do
+    img = CImg.load(path)
+
+    depth =
+      ScDepth.apply(img)
+      |> CImg.color_mapping(:jet)
+
+    Kino.Layout.grid(
+      Enum.map([img, depth], &CImg.display_kino(&1, :jpeg)),
+      columns: 2
+    )
+  end
+end
+```
+
+## 3.Let's try it
+
+```elixir
+LiveScDepth.run("sample.jpg")
+```
+
+## Appendix
+
+&#9633;
