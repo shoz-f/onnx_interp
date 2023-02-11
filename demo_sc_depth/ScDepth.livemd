@@ -34,7 +34,7 @@ This note usee the pretraind model converted from above project ;-)
 ## 1.Defining the inference module: ScDepth
 
 * Model<br>
-  yolov4_1_3_608_608_static.onnx
+  sc_depth-epoch=99-val_loss=0.1438.onnx
 
 * Pre-processing<br>
   Resize the input image to the size {640,384}, gauss {{114.75,57.375},{114.75,57.375},{114.75,57.375}}} and transpose NCHW.
@@ -50,8 +50,9 @@ defmodule ScDepth do
   alias OnnxInterp, as: NNInterp
 
   use NNInterp,
-    model: "model/sc_depth.onnx",
-    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/sc_depth.onnx",
+    model: "model/sc_depth-epoch=99-val_loss=0.1438.onnx",
+    url:
+      "https://github.com/shoz-f/onnx_interp/releases/download/models/sc_depth-epoch.99-val_loss.0.1438.onnx",
     inputs: [f32: {1, 3, @height, @width}],
     outputs: [f32: {1, 1, @height, @width}]
 
@@ -91,7 +92,7 @@ end
 Launch `ScDepth`.
 
 ```elixir
-# OnnxInterp.stop(Resnet18)
+OnnxInterp.stop(ScDepth)
 ScDepth.start_link([])
 ```
 
@@ -127,5 +128,63 @@ LiveScDepth.run("sample.jpg")
 ```
 
 ## Appendix
+
+[1] export_onnx.py: python script to convert Pytorch checkpoint to ONNX.
+
+```python:export_onnx.py
+import torch
+import torch.onnx
+from path import Path
+import os
+
+from config import get_opts, get_training_size
+
+from SC_Depth import SC_Depth
+from SC_DepthV2 import SC_DepthV2
+from SC_DepthV3 import SC_DepthV3
+
+
+@torch.no_grad()
+def main():
+    hparams = get_opts()
+
+    if hparams.model_version == 'v1':
+        system = SC_Depth(hparams)
+    elif hparams.model_version == 'v2':
+        system = SC_DepthV2(hparams)
+    elif hparams.model_version == 'v3':
+        system = SC_DepthV3(hparams)
+
+    output_dir = Path(hparams.output_dir)
+    output_dir.makedirs_p()
+
+    system = system.load_from_checkpoint(hparams.ckpt_path, strict=False)
+
+    model = system.depth_net
+    model.eval()
+
+    # training size
+    training_size = get_training_size(hparams.dataset_name)
+    dummy_input = torch.randn(1, 3, *training_size)
+
+    # export the model
+    torch.onnx.export(model,
+        dummy_input,
+        output_dir / Path(hparams.ckpt_path).stem + ".onnx",
+        export_params=True,
+        #opset_version=10,
+        do_constant_folding=True,
+        input_names=["input.0"],
+        output_names=["output.0"],
+        #dynamic_axes={}
+        )
+
+
+if __name__ == '__main__':
+    main()
+
+```
+
+<!-- livebook:{"break_markdown":true} -->
 
 &#9633;
