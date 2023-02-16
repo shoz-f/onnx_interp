@@ -31,32 +31,38 @@ This note usee the pretraind model converted from above project ;-)
 
 ## Implementation with OnnxInterp in Elixir
 
-## 1.Defining the inference module: HRDepthEncoder
+## 1-1.Defining the inference module: HRDepthEncoder
 
 * Model<br>
-  sc_depth-epoch=99-val_loss=0.1438.onnx
+  HR_Depth_K_M_1280x384_encoder.onnx
 
 * Pre-processing<br>
-  Resize the input image to the size {640,384}, gauss {{114.75,57.375},{114.75,57.375},{114.75,57.375}}} and transpose NCHW.
-
-* Post-processing<br>
-  normalize depth map and color-mapping.
+  Resize the input image to the size {1280,384}, range {0.0,1.0} and transpose NCHW.
 
 ```elixir
 defmodule HRDepthEncoder do
-  @width  1280
+  @width 1280
   @height 384
 
   alias OnnxInterp, as: NNInterp
+
   use NNInterp,
     model: "model/HR_Depth_K_M_1280x384_encoder.onnx",
-    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/HR_Depth_K_M_1280x384_encoder.onnx",
-    inputs: [f32: {1,3,@height,@width}],
-    outputs: [f32: {1,64,192,640}, f32: {1,64,96,320}, f32: {1,128,48,160}, f32: {1,256,24,80}, f32: {1,512,12,40}]
+    url:
+      "https://github.com/shoz-f/onnx_interp/releases/download/models/HR_Depth_K_M_1280x384_encoder.onnx",
+    inputs: [f32: {1, 3, @height, @width}],
+    outputs: [
+      f32: {1, 64, 192, 640},
+      f32: {1, 64, 96, 320},
+      f32: {1, 128, 48, 160},
+      f32: {1, 256, 24, 80},
+      f32: {1, 512, 12, 40}
+    ]
 
   def apply(img) do
     # preprocess
-    input0 = img
+    input0 =
+      img
       |> CImg.resize({@width, @height})
       |> CImg.to_binary([{:range, {0.0, 1.0}}, :nchw])
 
@@ -73,33 +79,44 @@ defmodule HRDepthEncoder do
 end
 ```
 
-## 2.Defining the inference module: HRDepthDecoder
+## 1-2.Defining the inference module: HRDepthDecoder
 
 * Model<br>
-  sc_depth-epoch=99-val_loss=0.1438.onnx
-
-* Pre-processing<br>
-  Resize the input image to the size {640,384}, gauss {{114.75,57.375},{114.75,57.375},{114.75,57.375}}} and transpose NCHW.
+  HR_Depth_K_M_1280x384_decoder.onnx
 
 * Post-processing<br>
-  normalize depth map and color-mapping.
+  normalize depth map and convert to the gray image.
 
 ```elixir
 defmodule HRDepthDecoder do
-  @width  1280
+  @width 1280
   @height 384
 
   alias OnnxInterp, as: NNInterp
+
   use NNInterp,
     model: "model/HR_Depth_K_M_1280x384_decoder.onnx",
-    url: "https://github.com/shoz-f/onnx_interp/releases/download/models/HR_Depth_K_M_1280x384_decoder.onnx",
-    inputs: [f32: {1,64,192,640}, f32: {1,64,96,320}, f32: {1,128,48,160}, f32: {1,256,24,80}, f32: {1,512,12,40}],
-    outputs: [f32: {1,1,@height,@width}, f32: {1,1,192,640}, f32: {1,1,96,320}, f32: {1,1,48,160}]
+    url:
+      "https://github.com/shoz-f/onnx_interp/releases/download/models/HR_Depth_K_M_1280x384_decoder.onnx",
+    inputs: [
+      f32: {1, 64, 192, 640},
+      f32: {1, 64, 96, 320},
+      f32: {1, 128, 48, 160},
+      f32: {1, 256, 24, 80},
+      f32: {1, 512, 12, 40}
+    ],
+    outputs: [
+      f32: {1, 1, @height, @width},
+      f32: {1, 1, 192, 640},
+      f32: {1, 1, 96, 320},
+      f32: {1, 1, 48, 160}
+    ]
 
   def apply(inputs) do
     # prediction
-    output0 = session()
-      |> set_input_tensors(inputs)
+    output0 =
+      session()
+      |> set_input_tensors(0, inputs)
       |> NNInterp.invoke()
       |> NNInterp.get_output_tensor(0)
 
@@ -107,13 +124,16 @@ defmodule HRDepthDecoder do
     CImg.from_binary(output0, @width, @height, 1, 1, range: min_max(output0), dtype: "<f4")
   end
 
-  def set_input_tensors(session, items, offset \\ 0) when is_list(items) do
-    Enum.with_index(items, offset)
-    |> Enum.reduce(session, fn {item, i}, session -> NNInterp.set_input_tensor(session, i, item) end)
+  def set_input_tensors(session, from, items) when is_list(items) do
+    Enum.with_index(items, from)
+    |> Enum.reduce(session, fn {item, i}, session ->
+      NNInterp.set_input_tensor(session, i, item)
+    end)
   end
 
   defp min_max(bin) do
     t = Nx.from_binary(bin, :f32)
+
     {
       Nx.reduce_min(t) |> Nx.to_number(),
       Nx.reduce_max(t) |> Nx.to_number()
@@ -121,6 +141,8 @@ defmodule HRDepthDecoder do
   end
 end
 ```
+
+## 1-3.Defining the interface module: HRDepth
 
 ```elixir
 defmodule HRDepth do
@@ -132,7 +154,7 @@ defmodule HRDepth do
 end
 ```
 
-Launch `HRDepth`.
+Launch `HRDepthEncoder` and `HRDepthDecoder`.
 
 ```elixir
 # OnnxInterp.stop(HRDepthEncoder)
@@ -141,7 +163,7 @@ HRDepthEncoder.start_link([])
 HRDepthDecoder.start_link([])
 ```
 
-Display the properties of the `ScDepth` model.
+Display the properties of model.
 
 ```elixir
 OnnxInterp.info(HRDepthEncoder)
@@ -157,14 +179,17 @@ OnnxInterp.info(HRDepthDecoder)
 defmodule LiveHRDepth do
   def run(path) do
     img = CImg.load(path)
+    {w, h, _, _} = CImg.shape(img)
 
-    depth = HRDepth.apply(img)
-    #      |> CImg.color_mapping(:jet)
+    depth =
+      HRDepth.apply(img)
+      |> CImg.resize({w, h})
+      |> CImg.color_mapping(:jet)
 
-    #    Kino.Layout.grid(
-    #      Enum.map([img, depth], &CImg.display_kino(&1, :jpeg)),
-    #      columns: 2
-    #    )
+    Kino.Layout.grid(
+      Enum.map([img, depth], &CImg.display_kino(&1, :jpeg)),
+      columns: 2
+    )
   end
 end
 ```
@@ -175,10 +200,6 @@ end
 dat = LiveHRDepth.run("sample.jpg")
 ```
 
-```elixir
-Nx.from_binary(dat, :f32) |> Nx.reduce_min()
-```
-
 ## Appendix
 
 [1] export_onnx.py: python script to convert Pytorch checkpoint to ONNX.
@@ -186,55 +207,62 @@ Nx.from_binary(dat, :f32) |> Nx.reduce_min()
 ```python:export_onnx.py
 import torch
 import torch.onnx
-from path import Path
-import os
+import networks
 
-from config import get_opts, get_training_size
+# pretrained model parameter files:
+depth_encoder_path = "./models/HR_Depth_K_M_1280x384/encoder.pth"
+depth_decoder_path = "./models/HR_Depth_K_M_1280x384/depth.pth"
 
-from SC_Depth import SC_Depth
-from SC_DepthV2 import SC_DepthV2
-from SC_DepthV3 import SC_DepthV3
+# convert the encoder to ONNX
+depth_encoder = networks.ResnetEncoder(18, False)
 
+encoder_dict = torch.load(depth_encoder_path, map_location=torch.device('cpu'))
+img_height = encoder_dict["height"]
+img_width = encoder_dict["width"]
+print("Test image height is:", img_height)
+print("Test image width is:", img_width)
 
-@torch.no_grad()
-def main():
-    hparams = get_opts()
+load_dict = {k: v for k, v in encoder_dict.items() if k in depth_encoder.state_dict()}
+depth_encoder.load_state_dict(load_dict)
+depth_encoder.eval()
 
-    if hparams.model_version == 'v1':
-        system = SC_Depth(hparams)
-    elif hparams.model_version == 'v2':
-        system = SC_DepthV2(hparams)
-    elif hparams.model_version == 'v3':
-        system = SC_DepthV3(hparams)
+dummy_input_a = torch.randn(1, 3, img_height, img_width)
 
-    output_dir = Path(hparams.output_dir)
-    output_dir.makedirs_p()
+torch.onnx.export(depth_encoder,
+    dummy_input_a,
+    "./depth_encoder.onnx",
+    export_params=True,
+    #opset_version=10,
+    do_constant_folding=True,
+    input_names=["input.0"],
+    output_names=["output.0", "output.1", "output.2", "output.3", "output.4"],
+    #dynamic_axes={}
+    )
 
-    system = system.load_from_checkpoint(hparams.ckpt_path, strict=False)
+# convert decoder to ONNX
+depth_decoder = networks.HRDepthDecoder(depth_encoder.num_ch_enc)
 
-    model = system.depth_net
-    model.eval()
+decoder_dict = torch.load(depth_decoder_path, map_location=torch.device('cpu'))
+depth_decoder.load_state_dict(decoder_dict)
+depth_decoder.eval()
 
-    # training size
-    training_size = get_training_size(hparams.dataset_name)
-    dummy_input = torch.randn(1, 3, *training_size)
+dummy_input0 = torch.randn(1,  64, 192, 640)
+dummy_input1 = torch.randn(1,  64,  96, 320)
+dummy_input2 = torch.randn(1, 128,  48, 160)
+dummy_input3 = torch.randn(1, 256,  24,  80)
+dummy_input4 = torch.randn(1, 512,  12,  40)
+dummy_input_b  = [dummy_input0,dummy_input1,dummy_input2,dummy_input3,dummy_input4]
 
-    # export the model
-    torch.onnx.export(model,
-        dummy_input,
-        output_dir / Path(hparams.ckpt_path).stem + ".onnx",
-        export_params=True,
-        #opset_version=10,
-        do_constant_folding=True,
-        input_names=["input.0"],
-        output_names=["output.0"],
-        #dynamic_axes={}
-        )
-
-
-if __name__ == '__main__':
-    main()
-
+torch.onnx.export(depth_decoder,
+    dummy_input_b,
+    "./depth_decoder.onnx",
+    export_params=True,
+    #opset_version=10,
+    do_constant_folding=True,
+    input_names=["input.0", "input.1", "input.2", "input.3", "input.4"],
+    output_names=["scale0", "scale1", "scale2", "sacle3"],
+    #dynamic_axes={}
+    )
 ```
 
 <!-- livebook:{"break_markdown":true} -->
