@@ -37,7 +37,7 @@ This note usee the pretraind model converted from above project ;-)
   HR_Depth_K_M_1280x384_encoder.onnx
 
 * Pre-processing<br>
-  Resize the input image to the size {1280,384}, range {0.0, 1.0} and transpose NCHW.
+  Resize the input image to the size {1280,384}, range {0.0,1.0} and transpose NCHW.
 
 ```elixir
 defmodule HRDepthEncoder do
@@ -101,19 +101,8 @@ defmodule HRDepthDecoder do
     model: "model/HR_Depth_K_M_1280x384_decoder.onnx",
     url:
       "https://github.com/shoz-f/onnx_interp/releases/download/models/HR_Depth_K_M_1280x384_decoder.onnx",
-    inputs: [
-      f32: {1, 64, 192, 640},
-      f32: {1, 64, 96, 320},
-      f32: {1, 128, 48, 160},
-      f32: {1, 256, 24, 80},
-      f32: {1, 512, 12, 40}
-    ],
-    outputs: [
-      f32: {1, 1, @height, @width},
-      f32: {1, 1, 192, 640},
-      f32: {1, 1, 96, 320},
-      f32: {1, 1, 48, 160}
-    ]
+    inputs: [f32: {1, 64, 192, 640}, f32: {1, 64, 96, 320}, f32: {1, 128, 48, 160}, f32: {1, 256, 24, 80}, f32: {1, 512, 12, 40}],
+    outputs: [f32: {1, 1, @height, @width}, f32: {1, 1, 192, 640}, f32: {1, 1, 96, 320}, f32: {1, 1, 48, 160}]
 
   def apply(inputs) do
     # prediction
