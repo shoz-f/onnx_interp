@@ -19,6 +19,8 @@
 #include <chrono>
 namespace chrono = std::chrono;
 
+#include <fstream>
+
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
@@ -93,6 +95,9 @@ struct SysInfo {
     // stop watch
     chrono::steady_clock::time_point mWatchStart;
     chrono::milliseconds mLap[NUM_LAP];
+
+    // logging file
+    std::ofstream mLog;
 
     void reset_lap() {
         for (int i = 0; i < NUM_LAP; i++) { mLap[i] = chrono::milliseconds(0); }

@@ -4,54 +4,52 @@ defmodule OnnxInterp do
   Deep Learning inference framework.
   """
 
-  @basic_usage """
-  ## Basic Usage
-  You get the trained onnx model and save it in a directory that your application can read.
-  "your-app/priv" may be good choice.
-
-  ```
-  $ cp your-trained-model.onnx ./priv
-  ```
-
-  Next, you will create a module that interfaces with the deep learning model.
-  The module will need pre-processing and post-processing in addition to inference
-  processing, as in the example following. OnnxInterp provides inference processing
-  only.
-
-  You put `use OnnxInterp` at the beginning of your module, specify the model path as an optional argument. In the inference
-  section, you will put data input to the model (`OnnxInterp.set_input_tensor/3`), inference execution (`OnnxInterp.invoke/1`),
-  and inference result retrieval (`OnnxInterp.get_output_tensor/2`).
-
-  ```elixr:your_model.ex
-  defmodule YourApp.YourModel do
-    use OnnxInterp, model: "priv/your-trained-model.onnx"
-
-    def predict(data) do
-      # preprocess
-      #  to convert the data to be inferred to the input format of the model.
-      input_bin = convert-float32-binaries(data)
-
-      # inference
-      #  typical I/O data for Onnx models is a serialized 32-bit float tensor.
-      output_bin =
-        __MODULE__
-        |> OnnxInterp.set_input_tensor(0, input_bin)
-        |> OnnxInterp.invoke()
-        |> OnnxInterp.get_output_tensor(0)
-
-      # postprocess
-      #  add your post-processing here.
-      #  you may need to reshape output_bin to tensor at first.
-      tensor = output_bin
-        |> Nx.from_binary({:f, 32})
-        |> Nx.reshape({size-x, size-y, :auto})
-
-      * your-postprocessing *
-      ...
-    end
-  end
-  ```
-  """
+  # ## Basic Usage
+  # You get the trained onnx model and save it in a directory that your application can read.
+  # "your-app/priv" may be good choice.
+  #
+  # ```
+  # $ cp your-trained-model.onnx ./priv
+  # ```
+  #
+  # Next, you will create a module that interfaces with the deep learning model.
+  # The module will need pre-processing and post-processing in addition to inference
+  # processing, as in the example following. OnnxInterp provides inference processing
+  # only.
+  #
+  # You put `use OnnxInterp` at the beginning of your module, specify the model path as an optional argument. In the inference
+  # section, you will put data input to the model (`OnnxInterp.set_input_tensor/3`), inference execution (`OnnxInterp.invoke/1`),
+  # and inference result retrieval (`OnnxInterp.get_output_tensor/2`).
+  #
+  # ```elixr:your_model.ex
+  # defmodule YourApp.YourModel do
+  #   use OnnxInterp, model: "priv/your-trained-model.onnx"
+  #
+  #   def predict(data) do
+  #     # preprocess
+  #     #  to convert the data to be inferred to the input format of the model.
+  #     input_bin = convert-float32-binaries(data)
+  #
+  #     # inference
+  #     #  typical I/O data for Onnx models is a serialized 32-bit float tensor.
+  #     output_bin =
+  #       __MODULE__
+  #       |> OnnxInterp.set_input_tensor(0, input_bin)
+  #       |> OnnxInterp.invoke()
+  #       |> OnnxInterp.get_output_tensor(0)
+  #
+  #     # postprocess
+  #     #  add your post-processing here.
+  #     #  you may need to reshape output_bin to tensor at first.
+  #     tensor = output_bin
+  #       |> Nx.from_binary({:f, 32})
+  #       |> Nx.reshape({size-x, size-y, :auto})
+  #
+  #     * your-postprocessing *
+  #     ...
+  #   end
+  # end
+  # ```
 
   @timeout 300000
 
@@ -84,6 +82,7 @@ defmodule OnnxInterp do
         nn_inputs  = Keyword.get(opts, :inputs, [])
         nn_outputs = Keyword.get(opts, :outputs, [])
         nn_opts    = Keyword.get(opts, :opts, "")
+        nn_memo    = Keyword.get(opts, :memo, nil)
 
         port = Port.open({:spawn_executable, executable}, [
           {:args, String.split(nn_opts) ++ opt_tspecs("--inputs", nn_inputs) ++ opt_tspecs("--outputs", nn_outputs) ++ [nn_model, nn_label]},
@@ -91,7 +90,9 @@ defmodule OnnxInterp do
           :binary
         ])
 
-        {:ok, %{port: port, itempl: nn_inputs, otempl: nn_outputs}}
+        nn_memo = if is_function(nn_memo), do: nn_memo.(), else: nn_memo
+
+        {:ok, %{port: port, itempl: nn_inputs, otempl: nn_outputs, memo: nn_memo}}
       end
 
       def session() do
@@ -114,6 +115,10 @@ defmodule OnnxInterp do
 
       def handle_call({:otempl, index}, _from, %{otempl: template}=state) do
         {:reply, {:ok, Enum.at(template, index)}, state}
+      end
+
+      def handle_call(:memo, _from, %{memo: memo}=state) do
+        {:reply, {:ok, memo}, state}
       end
 
       def terminate(_reason, state) do
@@ -157,7 +162,7 @@ defmodule OnnxInterp do
     * model - path of model file
     * url - download site
   """
-  def validate_model(nil, _), do: raise ArgumentError, "need a model file \"#{@model_suffix}\"."
+  def validate_model(nil, _), do: (raise ArgumentError, "need a model file \"#{@model_suffix}\".")
   def validate_model(model, url) do
     validate_extname!(model)
 
@@ -172,7 +177,7 @@ defmodule OnnxInterp do
   defp validate_extname!(model) do
     actual_ext = Path.extname(model)
     unless actual_ext == @model_suffix,
-      do: raise ArgumentError, "#{@framework} expects the model file \"#{@model_suffix}\" not \"#{actual_ext}\"."
+      do: (raise ArgumentError, "#{@framework} expects the model file \"#{@model_suffix}\" not \"#{actual_ext}\".")
 
     actual_ext
   end
@@ -187,7 +192,7 @@ defmodule OnnxInterp do
   def info(mod) do
     cmd = 0
     case GenServer.call(mod, <<cmd::little-integer-32>>, @timeout) do
-      {:ok, result} ->  Poison.decode(result)
+      {:ok, result} ->  Jason.decode(result)
       any -> any
     end
   end
@@ -218,7 +223,7 @@ defmodule OnnxInterp do
   def set_input_tensor(mod, index, bin, opts) when is_atom(mod) do
     cmd = 1
     case GenServer.call(mod, <<cmd::little-integer-32>> <> input_tensor(index, bin, opts), @timeout) do
-      {:ok, result} ->  Poison.decode(result)
+      {:ok, result} ->  Jason.decode(result)
       any -> any
     end
     mod
@@ -242,6 +247,20 @@ defmodule OnnxInterp do
   end
 
   @doc """
+  Put flat binaries to the input tensors on the interpreter.
+
+  ## Parameters
+
+    * mod   - modules' names or session.
+    * from  - first index of input tensor in the model
+    * items - list of input data - flat binary, cf. serialized tensor
+  """
+  def set_input_tensors(mod, from, items) when is_list(items) do
+    Enum.with_index(items, from)
+    |> Enum.reduce(mod, fn {item, i}, mod -> set_input_tensor(mod, i, item) end)
+  end
+
+  @doc """
   Get the flat binary from the output tensor on the interpreter.
 
   ## Parameters
@@ -261,6 +280,18 @@ defmodule OnnxInterp do
 
   def get_output_tensor(%OnnxInterp{outputs: outputs}, index, _opts) do
     Enum.at(outputs, index)
+  end
+
+  @doc """
+  Get list of the flat binary from the output tensoron the interpreter.
+
+  ## Parameters
+
+    * mod   - modules' names or session.
+    * range - range of output tensor in the model
+  """
+  def get_output_tensors(mod, range) do
+    for i <- range, do: get_output_tensor(mod, i)
   end
 
   @doc """
@@ -287,7 +318,7 @@ defmodule OnnxInterp do
   def invoke(mod) when is_atom(mod) do
     cmd = 2
     case GenServer.call(mod, <<cmd::little-integer-32>>, @timeout) do
-      {:ok, result} -> Poison.decode(result)
+      {:ok, result} -> Jason.decode(result)
       any -> any
     end
     mod
@@ -346,7 +377,7 @@ defmodule OnnxInterp do
     cmd = 5
     case GenServer.call(mod, <<cmd::little-integer-32, num_boxes::little-integer-32, box_repr::little-integer-32, num_class::little-integer-32, iou_threshold::little-float-32, score_threshold::little-float-32, sigma::little-float-32>> <> boxes <> scores, @timeout) do
       {:ok, nil} -> :notfind
-      {:ok, result} -> Poison.decode(result)
+      {:ok, result} -> Jason.decode(result)
       any -> any
     end
   end
@@ -378,4 +409,11 @@ defmodule OnnxInterp do
   end
   
   def adjust2letterbox(nms_result, _), do: nms_result
+
+  def get_memo(mod) do
+    case GenServer.call(mod, :memo, @timeout) do
+      {:ok, result} ->  result
+      any -> any
+    end
+  end
 end

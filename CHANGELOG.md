@@ -1,5 +1,10 @@
 # Changelog
 
+## Release 0.1.11(Jun 8 2024)
+  * Major Features and Improvements
+    * update Onnx runtime to version 1.18.0.
+    * replace Poison with Jason module.
+
 ## Release 0.1.10(Jan 15 2023)
 
   * Major Features and Improvements

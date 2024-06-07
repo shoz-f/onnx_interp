@@ -8,15 +8,15 @@ set(THIRD_PARTY ${CMAKE_SOURCE_DIR}/3rd_party)
 set(ONNXRUNTIME_ROOTDIR ${THIRD_PARTY}/onnxruntime)
 
 if(MSVC)
-        set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.12.0/onnxruntime-win-x64-1.12.0.zip)
+		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-win-x64-1.18.0.zip)
         string(APPEND CMAKE_CXX_FLAGS " /W4")
         set(ONNXRUNTIME_LIBRARIES
     	        ${ONNXRUNTIME_ROOTDIR}/lib/onnxruntime.lib
     	        ${ONNXRUNTIME_ROOTDIR}/lib/onnxruntime_providers_shared.lib
     	        )
 elseif(UNIX AND NOT APPLE)
-        set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.12.0/onnxruntime-linux-x64-1.12.0.tgz)
-        string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra")
+		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-linux-x64-1.18.0.tgz)
+		string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra")
         string(APPEND CMAKE_C_FLAGS " -Wall -Wextra")
 	set(ONNXRUNTIME_LIBRARIES
                 ${ONNXRUNTIME_ROOTDIR}/lib/libonnxruntime.so

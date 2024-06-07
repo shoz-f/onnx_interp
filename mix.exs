@@ -4,8 +4,8 @@ defmodule OnnxInterp.MixProject do
   def project do
     [
       app: :onnx_interp,
-      version: "0.1.10",
-      elixir: "~> 1.12",
+      version: "0.1.11",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       compilers: [:cmake] ++ Mix.compilers(),
       description: description(),
@@ -32,11 +32,11 @@ defmodule OnnxInterp.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:poison, "~> 5.0"},
       {:castore, "== 0.1.20"},
       {:progress_bar, "~> 2.0"},
-      {:mix_cmake, "~> 0.1.3"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+      {:mix_cmake, "~> 0.1.4"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:jason, "~> 1.4"}
     ]
   end
 
@@ -70,7 +70,7 @@ defmodule OnnxInterp.MixProject do
       platform: "x64",
 
       # Visual C++ configuration
-      build_config: "Debug"
+      build_config: "Release"
     ]
   end
 
@@ -109,7 +109,6 @@ defmodule OnnxInterp.MixProject do
         "demo_yolop/YOLOP.livemd",
         "demo_yolov4/YOLOv4.livemd",
         "demo_yolov8/YOLOv8.livemd",
-        "demo_yunet/YuNet.livemd",
       ],
       groups_for_extras: [
         "Examples": Path.wildcard("demo_*/*.livemd")

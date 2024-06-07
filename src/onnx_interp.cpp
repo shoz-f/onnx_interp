@@ -120,9 +120,8 @@ std::string&)
     mISpec = parse_tensor_spec(itempl, false);
 
     mInputCount = mSession.GetInputCount();
-    mInputNames = new char*[mInputCount];
     for (size_t i = 0; i < mInputCount; i++) {
-        mInputNames[i] = mSession.GetInputName(i, _ort_alloc);
+        mInputNames.emplace_back(mSession.GetInputNameAllocated(i, _ort_alloc).get());
 
         Ort::TypeInfo type_info = mSession.GetInputTypeInfo(i);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
@@ -150,9 +149,8 @@ std::string&)
     }
 
     mOutputCount = mSession.GetOutputCount();
-    mOutputNames = new char*[mOutputCount];
     for (size_t i = 0; i < mOutputCount; i++) {
-        mOutputNames[i] = mSession.GetOutputName(i, _ort_alloc);
+        mOutputNames.emplace_back(mSession.GetOutputNameAllocated(i, _ort_alloc).get());
     }
 }
 
@@ -166,16 +164,6 @@ std::string&)
 OnnxInterp::~OnnxInterp()
 {
     Ort::AllocatorWithDefaultOptions _ort_alloc;
-
-    for (size_t i = 0; i < mInputCount; i++) {
-        _ort_alloc.Free(mInputNames[i]);
-    }
-    delete [] mInputNames;
-
-    for (size_t i = 0; i < mOutputCount; i++) {
-        _ort_alloc.Free(mOutputNames[i]);
-    }
-    delete [] mOutputNames;
 
     for (size_t i = 0; i < mISpec.size(); i++) {
         delete mISpec[i];
@@ -223,7 +211,7 @@ OnnxInterp::info(json& res)
         json onnx_tensor;
 
         onnx_tensor["index"] = index;
-        onnx_tensor["name"]  = mInputNames[index];
+        onnx_tensor["name"]  = mInputNames[index].c_str();
 
         Ort::TypeInfo type_info = mSession.GetInputTypeInfo(index);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
@@ -246,7 +234,7 @@ OnnxInterp::info(json& res)
         json onnx_tensor;
 
         onnx_tensor["index"] = index;
-        onnx_tensor["name"]  = mOutputNames[index];
+        onnx_tensor["name"]  = mOutputNames[index].c_str();
 
         Ort::TypeInfo type_info = mSession.GetOutputTypeInfo(index);
         auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
@@ -321,7 +309,16 @@ OnnxInterp::set_input_tensor(unsigned int index, const uint8_t* data, int size, 
 bool
 OnnxInterp::invoke()
 {
-    mOutput = mSession.Run(Ort::RunOptions{nullptr}, mInputNames, mInput.data(), mInputCount, mOutputNames, mOutputCount);
+    std::vector<const char*> input_names(mInputNames.size(), nullptr);
+    std::transform(std::begin(mInputNames), std::end(mInputNames), std::begin(input_names),
+                    [](const std::string& str) { return str.c_str(); });
+
+    std::vector<const char*> output_names(mOutputNames.size(), nullptr);
+    std::transform(std::begin(mOutputNames), std::end(mOutputNames), std::begin(output_names),
+                    [](const std::string& str) { return str.c_str(); });
+
+
+    mOutput = mSession.Run(Ort::RunOptions{nullptr}, input_names.data(), mInput.data(), mInputCount, output_names.data(), mOutputCount);
 
     return true;
 }

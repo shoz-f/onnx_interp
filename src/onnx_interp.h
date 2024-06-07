@@ -59,10 +59,10 @@ private:
     Ort::Env mEnv{ORT_LOGGING_LEVEL_WARNING, "onnx_interp"};
     Ort::Session mSession{nullptr};
 
-    char** mInputNames{nullptr};
+    std::vector<std::string> mInputNames;
     std::vector<Ort::Value> mInput;
 
-    char** mOutputNames{nullptr};
+    std::vector<std::string> mOutputNames;
     std::vector<Ort::Value> mOutput;
     
     std::vector<TensorSpec*> mISpec;

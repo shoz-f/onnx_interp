@@ -39,7 +39,15 @@ defmodule OnnxInterp.URL do
     File.mkdir_p(path)
 
     Path.join(path, name)
-    |> save(response.body)
+
+    case response.body do
+      <<"PK", _rest::binary>> -> unzip(path, response.body)
+      _ -> save(Path.join(path, name), response.body)
+    end
+  end
+
+  defp unzip(path, bin) do
+    :zip.unzip(bin, cwd: ~c"#{path}")
   end
 
   defp save(file, bin) do
@@ -68,7 +76,7 @@ defmodule OnnxInterp.URL do
     end
   end
   
-  defp get_loop(id, downloaded, progress \\ nil) do
+  defp get_loop(id, downloaded, progress) do
     receive do
       {:http, reply_info} when elem(reply_info, 0) == id ->
         case Tuple.delete_at(reply_info, 0) do
