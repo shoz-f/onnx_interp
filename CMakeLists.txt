@@ -6,16 +6,19 @@ project(onnx_interp C CXX)
 include(FetchContent)
 set(THIRD_PARTY ${CMAKE_SOURCE_DIR}/3rd_party)
 set(ONNXRUNTIME_ROOTDIR ${THIRD_PARTY}/onnxruntime)
+set(ONNXGENAI_ROOTDIR ${THIRD_PARTY}/onnxgenai)
 
 if(MSVC)
-		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-win-x64-1.18.0.zip)
+		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.19.2/onnxruntime-win-x64-1.19.2.zip)
+		set(URL_ONNXGENAI https://github.com/microsoft/onnxruntime-genai/releases/download/v0.4.0/onnxruntime-genai-win-cpu-x64-capi.zip)
         string(APPEND CMAKE_CXX_FLAGS " /W4")
         set(ONNXRUNTIME_LIBRARIES
     	        ${ONNXRUNTIME_ROOTDIR}/lib/onnxruntime.lib
     	        ${ONNXRUNTIME_ROOTDIR}/lib/onnxruntime_providers_shared.lib
     	        )
 elseif(UNIX AND NOT APPLE)
-		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-linux-x64-1.18.0.tgz)
+		set(URL_ONNXRUNTIME https://github.com/microsoft/onnxruntime/releases/download/v1.19.2/onnxruntime-linux-x64-1.19.2.tgz)
+		set(URL_ONNGENAI https://github.com/microsoft/onnxruntime-genai/releases/download/v0.4.0/onnxruntime-genai-linux-cpu-x64-capi.zip)
 		string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra")
         string(APPEND CMAKE_C_FLAGS " -Wall -Wextra")
 	set(ONNXRUNTIME_LIBRARIES
@@ -40,6 +43,13 @@ if(NOT EXISTS ${ONNXRUNTIME_ROOTDIR})
                 SOURCE_DIR ${ONNXRUNTIME_ROOTDIR}
                 )
         FetchContent_MakeAvailable(onnxruntime)
+
+		message("** Download onnxruntime generative AI.")
+        FetchContent_Declare(onnxgenai
+                URL ${URL_ONNXGENAI}
+                SOURCE_DIR ${ONNXGENAI_ROOTDIR}
+                )
+        FetchContent_MakeAvailable(onnxgenai)
 endif()
 
 include_directories(
